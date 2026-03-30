@@ -50,11 +50,11 @@ logs/
 *.h5
 *.hdf5
 
-dataset/raw/
-dataset/processed/
-models/
-predict_models/
-samples/
+dataset/raw/*
+dataset/processed/*
+models/*
+predict_models/*
+samples/*
 
 *.tar
 *.tar.gz
