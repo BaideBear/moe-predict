@@ -54,6 +54,7 @@ dataset/raw/
 dataset/processed/
 models/
 predict_models/
+samples/
 
 *.tar
 *.tar.gz
