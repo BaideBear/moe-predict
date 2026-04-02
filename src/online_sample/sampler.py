@@ -204,10 +204,24 @@ class OnlineSampler:
             
             for layer_idx_pos, layer_idx in enumerate(self.moe_layers):
                 gate_output_batch = self.buffer_gate_outputs[layer_idx][batch_idx]
-                gate_output = gate_output_batch[pos_in_batch]
                 
-                if gate_output.dim() == 3:
-                    gate_output = gate_output[0]
+                # 处理Qwen等模型的[b*s, num_experts]格式
+                if gate_output_batch.dim() == 2:
+                    # 获取当前batch中所有样本的总序列长度
+                    start_seq = 0
+                    for i in range(sample_idx - pos_in_batch, sample_idx + 1):
+                        if i == sample_idx:
+                            break
+                        start_seq += self.buffer_seq_lengths[i]
+                    
+                    # 从[b*s, num_experts]中切片获取当前sample的数据
+                    gate_output = gate_output_batch[start_seq:start_seq + seq_len]
+                else:
+                    # 标准格式处理
+                    gate_output = gate_output_batch[pos_in_batch]
+                    
+                    if gate_output.dim() == 3:
+                        gate_output = gate_output[0]
                 
                 if gate_output.shape[0] >= seq_len:
                     gate_logits[sample_idx, layer_idx_pos, :seq_len] = gate_output[:seq_len]
@@ -216,10 +230,23 @@ class OnlineSampler:
                 
                 if self.pattern == ActivationPattern.ATTN_GATE:
                     attn_hidden_state_batch = self.buffer_attn_hidden_states[layer_idx][batch_idx]
-                    attn_hidden_state = attn_hidden_state_batch[pos_in_batch]
                     
-                    if attn_hidden_state.dim() == 3:
-                        attn_hidden_state = attn_hidden_state[0]
+                    # 同样处理attention hidden states的[b*s, hidden_dim]格式
+                    if attn_hidden_state_batch.dim() == 2:
+                        # 获取当前batch中所有样本的总序列长度
+                        start_seq = 0
+                        for i in range(sample_idx - pos_in_batch, sample_idx + 1):
+                            if i == sample_idx:
+                                break
+                            start_seq += self.buffer_seq_lengths[i]
+                        
+                        # 从[b*s, hidden_dim]中切片获取当前sample的数据
+                        attn_hidden_state = attn_hidden_state_batch[start_seq:start_seq + seq_len]
+                    else:
+                        attn_hidden_state = attn_hidden_state_batch[pos_in_batch]
+                        
+                        if attn_hidden_state.dim() == 3:
+                            attn_hidden_state = attn_hidden_state[0]
                     
                     if attn_hidden_state.dim() == 2:
                         attn_hidden_states[sample_idx, layer_idx_pos, :seq_len] = attn_hidden_state[:seq_len]
@@ -228,10 +255,23 @@ class OnlineSampler:
                 
                 elif self.pattern == ActivationPattern.GATE_INPUT:
                     gate_input_batch = self.buffer_gate_inputs[layer_idx][batch_idx]
-                    gate_input = gate_input_batch[pos_in_batch]
                     
-                    if gate_input.dim() == 3:
-                        gate_input = gate_input[0]
+                    # 同样处理gate inputs的[b*s, hidden_dim]格式
+                    if gate_input_batch.dim() == 2:
+                        # 获取当前batch中所有样本的总序列长度
+                        start_seq = 0
+                        for i in range(sample_idx - pos_in_batch, sample_idx + 1):
+                            if i == sample_idx:
+                                break
+                            start_seq += self.buffer_seq_lengths[i]
+                        
+                        # 从[b*s, hidden_dim]中切片获取当前sample的数据
+                        gate_input = gate_input_batch[start_seq:start_seq + seq_len]
+                    else:
+                        gate_input = gate_input_batch[pos_in_batch]
+                        
+                        if gate_input.dim() == 3:
+                            gate_input = gate_input[0]
                     
                     if gate_input.shape[0] >= seq_len:
                         gate_inputs[sample_idx, layer_idx_pos, :seq_len] = gate_input[:seq_len]
