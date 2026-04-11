@@ -4,8 +4,8 @@
 # This script tests the training module with minimal samples
 
 PROJECT_ROOT="/data1/gx/MoE-predict"
-# MODEL_NAME="Mixtral-8x7B-Instruct-v0.1"
-MODEL_NAME="DeepSeek-V2-Lite-Chat"
+MODEL_NAME="Mixtral-8x7B-Instruct-v0.1"
+# MODEL_NAME="DeepSeek-V2-Lite-Chat"
 DATA_NAME="mmlu"
 DATASET_PATH="${PROJECT_ROOT}/dataset/processed/train/${DATA_NAME}.jsonl"
 SCRIPT_PATH="${PROJECT_ROOT}/src/predict/attn-gate/train_predictor.py"

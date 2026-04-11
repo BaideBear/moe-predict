@@ -122,9 +122,13 @@ class GatePredictorTrainer:
                 correct = (predicted_experts == true_experts).sum().item()
                 total_correct += correct
                 
-                top2_probs, top2_indices = predictions_valid.topk(2, dim=-1)
-                top1_correct = (top2_indices[:, 0] == true_experts).sum().item()
-                top2_correct = (top2_indices[:, 1] == true_experts).sum().item()
+                true_top2_indices = gate_valid.topk(2, dim=-1).indices
+                top2_indices = predictions_valid.topk(2, dim=-1).indices
+                
+                top1_correct = (top2_indices[:, 0] == true_top2_indices[:, 0]).sum().item()
+                
+                pred_in_true_top2 = (top2_indices.unsqueeze(-1) == true_top2_indices.unsqueeze(1)).any(dim=-1)
+                top2_correct = pred_in_true_top2.any(dim=-1).sum().item()
                 
                 total_top1_correct += top1_correct
                 total_top2_correct += top2_correct
