@@ -61,6 +61,8 @@ predict_models/*
 samples/*
 !samples/.gitkeep
 
+src/predict/attn-gate/wandb/
+
 *.tar
 *.tar.gz
 *.zip
