@@ -1,0 +1,94 @@
+{
+  "os": "Linux-5.4.0-42-generic-x86_64-with-glibc2.31",
+  "python": "CPython 3.11.15",
+  "startedAt": "2026-04-10T14:32:25.560695Z",
+  "args": [
+    "--model_path",
+    "/data1/gx/MoE-predict/models/DeepSeek-V2-Lite-Chat",
+    "--dataset_path",
+    "/data1/gx/MoE-predict/dataset/processed/train/mmlu.jsonl",
+    "--pattern",
+    "attn_gate",
+    "--batch_size",
+    "1",
+    "--max_seq_length",
+    "2048",
+    "--buffer_size_gb",
+    "2.0",
+    "--max_samples",
+    "12000",
+    "--epochs",
+    "5",
+    "--train_batch_size",
+    "15",
+    "--learning_rate",
+    "1e-3",
+    "--weight_decay",
+    "0.01",
+    "--checkpoint_dir",
+    "/data1/gx/MoE-predict/predict_models/attn-gate/DeepSeek-V2-Lite-Chat/mmlu",
+    "--checkpoint_interval",
+    "2000",
+    "--use_wandb",
+    "--wandb_project",
+    "moe-gate-predictor",
+    "--wandb_run_name",
+    "DeepSeek-V2-Lite-Chat-mmlu"
+  ],
+  "program": "/data1/gx/MoE-predict/src/predict/attn-gate/train_predictor.py",
+  "codePath": "src/predict/attn-gate/train_predictor.py",
+  "codePathLocal": "train_predictor.py",
+  "git": {
+    "remote": "https://github.com/BaideBear/moe-predict.git",
+    "commit": "b03d9830c7474d09483752e5a8ce2287d463fad0"
+  },
+  "email": "3345180277@qq.com",
+  "root": "/data1/gx/MoE-predict/src/predict/attn-gate",
+  "host": "amax",
+  "executable": "/home/gx/miniconda3/envs/MoE-test/bin/python",
+  "cpu_count": 24,
+  "cpu_count_logical": 48,
+  "gpu": "NVIDIA RTX A6000",
+  "gpu_count": 4,
+  "disk": {
+    "/": {
+      "total": "934669557760",
+      "used": "889885339648"
+    }
+  },
+  "memory": {
+    "total": "404336435200"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA RTX A6000",
+      "memoryTotal": "51527024640",
+      "cudaCores": 10752,
+      "architecture": "Ampere",
+      "uuid": "GPU-56488a1d-fbbe-af5f-56e4-23f6f983d9b0"
+    },
+    {
+      "name": "NVIDIA RTX A6000",
+      "memoryTotal": "51527024640",
+      "cudaCores": 10752,
+      "architecture": "Ampere",
+      "uuid": "GPU-57936391-3548-4e9b-3a76-171251751d17"
+    },
+    {
+      "name": "NVIDIA RTX A6000",
+      "memoryTotal": "51527024640",
+      "cudaCores": 10752,
+      "architecture": "Ampere",
+      "uuid": "GPU-8ed8fdd7-cd60-7271-c8e8-1684f55cd9ea"
+    },
+    {
+      "name": "NVIDIA RTX A6000",
+      "memoryTotal": "51527024640",
+      "cudaCores": 10752,
+      "architecture": "Ampere",
+      "uuid": "GPU-860f949a-7709-0357-5681-d784e5abea66"
+    }
+  ],
+  "cudaVersion": "12.2",
+  "writerId": "izmdhsn89kohlop712ud7nk78hidtha0"
+}

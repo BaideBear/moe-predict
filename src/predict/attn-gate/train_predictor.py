@@ -76,7 +76,11 @@ def main():
     print(f"Max sequence length: {args.max_seq_length}")
     print(f"Buffer size: {args.buffer_size_gb} GB")
     print(f"Device: {args.device}")
-    print(f"Max samples: {args.max_samples}")
+    print(f"Max samples per epoch: {args.max_samples}")
+    print(f"Epochs: {args.epochs}")
+    print(f"Train batch size: {args.train_batch_size}")
+    print(f"Learning rate: {args.learning_rate}")
+    print(f"Use wandb: {args.use_wandb}")
     print("=" * 80)
     
     # Step 1: Load model and tokenizer
@@ -142,7 +146,8 @@ def main():
         pattern=args.pattern,
         batch_size=args.batch_size,
         max_seq_length=args.max_seq_length,
-        trust_remote_code=True
+        trust_remote_code=True,
+        epochs=args.epochs
     )
     print("✓ Sampler created successfully")
     
@@ -166,137 +171,103 @@ def main():
     sampler.start()
     print("✓ Sampling started")
     
-    # Step 10: Training loop with epochs
+    # Step 10: Training loop
     print("\n[Step 10] Training loop...")
-    print(f"  Epochs: {args.epochs}")
     print(f"  Train batch size: {args.train_batch_size}")
     print(f"  Learning rate: {args.learning_rate}")
     print(f"  Use wandb: {args.use_wandb}")
-    print("(Press Ctrl+C to stop)")
+    print("(Press Ctrl+C to stop)...")
     
     samples_processed = 0
     total_samples_processed = 0
     
     try:
-        for epoch in range(args.epochs):
-            print(f"\n{'=' * 80}")
-            print(f"Epoch {epoch + 1}/{args.epochs}")
-            print(f"{'=' * 80}")
+        while True:
+            batch = predictor_interface.get_batch()
             
-            epoch_samples = 0
-            epoch_start_time = time.time()
-            
-            while epoch_samples < args.max_samples:
-                batch = predictor_interface.get_batch()
-                
-                if batch is None:
-                    if not sampler.is_running():
-                        print("Sampler has stopped, no more data available")
-                        break
-                    continue
-                
-                for data in batch:
-                    epoch_samples += 1
-                    samples_processed += 1
-                    total_samples_processed += 1
-                    
-                    # Extract model structure information from sampled data
-                    if samples_processed == 1:
-                        print(f"\n[First Sample Analysis]")
-                        print(f"  Tokens shape: {data.tokens.shape}")
-                        print(f"  Gate logits shape: {data.gate_logits.shape}")
-                        
-                        if data.attn_hidden_states is not None:
-                            print(f"  Attention hidden states shape: {data.attn_hidden_states.shape}")
-                        
-                        if data.gate_inputs is not None:
-                            print(f"  Gate inputs shape: {data.gate_inputs.shape}")
-                        
-                        if data.seq_lengths is not None:
-                            print(f"  Sequence lengths: {data.seq_lengths}")
-                        
-                        # Parse model structure from sampled data
-                        num_samples, num_layers, seq_len, num_experts = data.gate_logits.shape
-                        print(f"\n  Model structure from sampled data:")
-                        print(f"    Number of MoE layers: {num_layers}")
-                        print(f"    Number of experts to predict: {num_experts}")
-                        print(f"    Sequence length: {seq_len}")
-                        
-                        if data.attn_hidden_states is not None:
-                            hidden_dim = data.attn_hidden_states.shape[-1]
-                            print(f"    Hidden dimension: {hidden_dim}")
-                        
-                        # Create predictor model on first sample
-                        print(f"\n  Creating predictor model...")
-                        print(f"    Model type: simple_mlp")
-                        print(f"    Number of layers: {num_layers}")
-                        print(f"    Input dimension: {hidden_dim}")
-                        print(f"    Number of experts: {num_experts}")
-                        
-                        predictor_model = get_predictor_model(
-                            model_type="simple_mlp",
-                            num_layers=num_layers,
-                            input_dim=hidden_dim,
-                            num_experts=num_experts,
-                            hidden_dim=2048,
-                            dropout=0.1
-                        )
-                        
-                        # Create trainer
-                        trainer = GatePredictorTrainer(
-                            model=predictor_model,
-                            learning_rate=args.learning_rate,
-                            weight_decay=args.weight_decay,
-                            train_batch_size=args.train_batch_size,
-                            device=args.device,
-                            use_wandb=args.use_wandb,
-                            wandb_project=args.wandb_project,
-                            wandb_run_name=args.wandb_run_name
-                        )
-                        
-                        print(f"  ✓ Predictor model and trainer created")
-                        
-                        # Print model architecture
-                        print(f"\n  Model architecture:")
-                        print(f"    Total parameters: {sum(p.numel() for p in predictor_model.parameters()):,}")
-                        print(f"    Trainable parameters: {sum(p.numel() for p in predictor_model.parameters() if p.requires_grad):,}")
-                    
-                    # Add sample to trainer
-                    if data.attn_hidden_states is not None and data.gate_logits is not None:
-                        trainer.add_sample(
-                            attn_hidden_states=data.attn_hidden_states,
-                            gate_logits=data.gate_logits,
-                            seq_lengths=data.seq_lengths
-                        )
-                    
-                    # Save checkpoint
-                    if args.checkpoint_dir is not None and total_samples_processed % args.checkpoint_interval == 0:
-                        checkpoint_path = os.path.join(args.checkpoint_dir, f"predictor_sample_{total_samples_processed}.pt")
-                        trainer.save_checkpoint(checkpoint_path, epoch)
-                
-                if epoch_samples >= args.max_samples:
+            if batch is None:
+                if not sampler.is_running():
+                    print("Sampler has stopped, no more data available")
                     break
+                continue
             
-            # Flush remaining samples in buffer
-            if trainer is not None:
-                trainer.flush_remaining()
-            
-            epoch_time = time.time() - epoch_start_time
-            print(f"\nEpoch {epoch + 1} completed in {epoch_time:.2f}s")
-            print(f"  Samples processed: {epoch_samples}")
-            
-            # Restart sampler for next epoch
-            if epoch < args.epochs - 1:
-                print("\nRestarting sampler for next epoch...")
-                sampler.stop()
-                sampler.join()
+            for data in batch:
+                samples_processed += 1
+                total_samples_processed += 1
                 
-                # Clear buffer
-                buffer.clear()
+                # Extract model structure information from sampled data
+                if samples_processed == 1:
+                    print(f"\n[First Sample Analysis]")
+                    print(f"  Tokens shape: {data.tokens.shape}")
+                    print(f"  Gate logits shape: {data.gate_logits.shape}")
+                    
+                    if data.attn_hidden_states is not None:
+                        print(f"  Attention hidden states shape: {data.attn_hidden_states.shape}")
+                    
+                    if data.gate_inputs is not None:
+                        print(f"  Gate inputs shape: {data.gate_inputs.shape}")
+                    
+                    if data.seq_lengths is not None:
+                        print(f"  Sequence lengths: {data.seq_lengths}")
+                    
+                    # Parse model structure from sampled data
+                    num_samples_batch, num_layers, seq_len, num_experts = data.gate_logits.shape
+                    print(f"\n  Model structure from sampled data:")
+                    print(f"    Number of MoE layers: {num_layers}")
+                    print(f"    Number of experts to predict: {num_experts}")
+                    print(f"    Sequence length: {seq_len}")
+                    
+                    if data.attn_hidden_states is not None:
+                        hidden_dim = data.attn_hidden_states.shape[-1]
+                        print(f"    Hidden dimension: {hidden_dim}")
+                    
+                    # Create predictor model on first sample
+                    print(f"\n  Creating predictor model...")
+                    print(f"    Model type: simple_mlp")
+                    print(f"    Number of layers: {num_layers}")
+                    print(f"    Input dimension: {hidden_dim}")
+                    print(f"    Number of experts: {num_experts}")
+                    
+                    predictor_model = get_predictor_model(
+                        model_type="simple_mlp",
+                        num_layers=num_layers,
+                        input_dim=hidden_dim,
+                        num_experts=num_experts,
+                        hidden_dim=2048,
+                        dropout=0.1
+                    )
+                    
+                    # Create trainer
+                    trainer = GatePredictorTrainer(
+                        model=predictor_model,
+                        learning_rate=args.learning_rate,
+                        weight_decay=args.weight_decay,
+                        train_batch_size=args.train_batch_size,
+                        device=args.device,
+                        use_wandb=args.use_wandb,
+                        wandb_project=args.wandb_project,
+                        wandb_run_name=args.wandb_run_name
+                    )
+                    
+                    print(f"  ✓ Predictor model and trainer created")
+                    
+                    # Print model architecture
+                    print(f"\n  Model architecture:")
+                    print(f"    Total parameters: {sum(p.numel() for p in predictor_model.parameters()):,}")
+                    print(f"    Trainable parameters: {sum(p.numel() for p in predictor_model.parameters() if p.requires_grad):,}")
                 
-                # Restart sampler
-                sampler.start()
-                print("✓ Sampler restarted")
+                # Add sample to trainer
+                if data.attn_hidden_states is not None and data.gate_logits is not None:
+                    trainer.add_sample(
+                        attn_hidden_states=data.attn_hidden_states,
+                        gate_logits=data.gate_logits,
+                        seq_lengths=data.seq_lengths
+                    )
+                
+                # Save checkpoint
+                if args.checkpoint_dir is not None and (total_samples_processed % args.checkpoint_interval == 0):
+                    checkpoint_path = os.path.join(args.checkpoint_dir, f"predictor_sample_{total_samples_processed}.pt")
+                    trainer.save_checkpoint(checkpoint_path, 0)
     
     except KeyboardInterrupt:
         print("\n\nReceived stop signal...")

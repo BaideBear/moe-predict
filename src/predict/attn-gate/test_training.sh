@@ -4,25 +4,29 @@
 # This script tests the training module with minimal samples
 
 PROJECT_ROOT="/data1/gx/MoE-predict"
-DATASET_PATH="${PROJECT_ROOT}/dataset/processed/test/mmlu.jsonl"
+# MODEL_NAME="Mixtral-8x7B-Instruct-v0.1"
+MODEL_NAME="DeepSeek-V2-Lite-Chat"
+DATA_NAME="mmlu"
+DATASET_PATH="${PROJECT_ROOT}/dataset/processed/train/${DATA_NAME}.jsonl"
 SCRIPT_PATH="${PROJECT_ROOT}/src/predict/attn-gate/train_predictor.py"
 
+
 # Test configuration
-MODEL_PATH="${PROJECT_ROOT}/models/DeepSeek-V2-Lite-Chat"
+MODEL_PATH="${PROJECT_ROOT}/models/${MODEL_NAME}"
 PATTERN="attn_gate"
 BATCH_SIZE=1
 MAX_SEQ_LENGTH=2048
 BUFFER_SIZE_GB=2.0
-MAX_SAMPLES=30
+MAX_SAMPLES=12000
 
 # Training configuration
-EPOCHS=1
-TRAIN_BATCH_SIZE=5
-LEARNING_RATE=1e-4
+EPOCHS=5
+TRAIN_BATCH_SIZE=15
+LEARNING_RATE=1e-3
 WEIGHT_DECAY=0.01
-USE_WANDB=false
-CHECKPOINT_DIR="${PROJECT_ROOT}/src/predict/attn-gate/test_checkpoints"
-CHECKPOINT_INTERVAL=20
+USE_WANDB=true
+CHECKPOINT_DIR="${PROJECT_ROOT}/predict_models/attn-gate/${MODEL_NAME}/${DATA_NAME}"
+CHECKPOINT_INTERVAL=2000
 
 echo "=========================================="
 echo "MoE Gate Predictor Training Test"
@@ -82,7 +86,10 @@ python "${SCRIPT_PATH}" \
     --learning_rate "${LEARNING_RATE}" \
     --weight_decay "${WEIGHT_DECAY}" \
     --checkpoint_dir "${CHECKPOINT_DIR}" \
-    --checkpoint_interval "${CHECKPOINT_INTERVAL}"
+    --checkpoint_interval "${CHECKPOINT_INTERVAL}" \
+    --use_wandb \
+    --wandb_project "moe-gate-predictor" \
+    --wandb_run_name "${MODEL_NAME}-${DATA_NAME}"
 
 EXIT_CODE=$?
 

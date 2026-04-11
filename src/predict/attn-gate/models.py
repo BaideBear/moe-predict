@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 
-
 class SimpleMLPPredictor(nn.Module):
     def __init__(self, input_dim: int, num_experts: int, hidden_dim: int = 2048, dropout: float = 0.1):
         super(SimpleMLPPredictor, self).__init__()
@@ -45,3 +44,4 @@ class SimpleMLPPredictorModel(nn.Module):
 
 def create_simple_mlp_predictor(num_layers: int, input_dim: int, num_experts: int, hidden_dim: int = 2048, dropout: float = 0.1) -> SimpleMLPPredictorModel:
     return SimpleMLPPredictorModel(num_layers, input_dim, num_experts, hidden_dim, dropout)
+

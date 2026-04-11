@@ -21,7 +21,8 @@ class OnlineSampler:
         pattern: str,
         batch_size: int = 1,
         max_seq_length: int = 2048,
-        trust_remote_code: bool = True
+        trust_remote_code: bool = True,
+        epochs: int = 1
     ):
         self.model = model
         self.tokenizer = tokenizer
@@ -35,6 +36,7 @@ class OnlineSampler:
         self.batch_size = batch_size
         self.max_seq_length = max_seq_length
         self.trust_remote_code = trust_remote_code
+        self.epochs = epochs
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
@@ -53,6 +55,7 @@ class OnlineSampler:
         print(f"  Pattern: {pattern}")
         print(f"  Batch size: {batch_size}")
         print(f"  Max seq length: {max_seq_length}")
+        print(f"  Epochs: {epochs}")
         print(f"  MoE layers: {self.moe_layers}")
     
     def _init_buffers(self):
@@ -301,30 +304,38 @@ class OnlineSampler:
         print(f"\nStarting online sampling...")
         print(f"Total samples: {len(dataset)}")
         print(f"Batch size: {self.batch_size}")
-        print(f"Number of batches: {num_batches}\n")
+        print(f"Number of batches: {num_batches}")
+        print(f"Epochs: {self.epochs}")
+        print(f"Total samples to process: {len(dataset) * self.epochs}\n")
         
         try:
-            for batch_idx in tqdm(range(num_batches), desc="Sampling"):
-                if self._stop_event.is_set():
-                    print("Stop event received, stopping sampling...")
-                    break
+            for epoch in range(self.epochs):
+                if self.epochs > 1:
+                    print(f"\n{'=' * 80}")
+                    print(f"Epoch {epoch + 1}/{self.epochs}")
+                    print(f"{'=' * 80}")
                 
-                start_idx = batch_idx * self.batch_size
-                end_idx = min(start_idx + self.batch_size, len(dataset))
-                batch_data = dataset[start_idx:end_idx]
-                
-                self._process_batch(batch_data, batch_idx)
-                
-                activation_data = self._create_activation_data()
-                
-                success = self.buffer.write(activation_data)
-                if not success:
-                    print("Failed to write to buffer, stopping sampling...")
-                    break
-                
-                self._clear_buffers()
-                
-                torch.cuda.empty_cache()
+                for batch_idx in tqdm(range(num_batches), desc=f"Sampling Epoch {epoch + 1}/{self.epochs}" if self.epochs > 1 else "Sampling"):
+                    if self._stop_event.is_set():
+                        print("Stop event received, stopping sampling...")
+                        break
+                    
+                    start_idx = batch_idx * self.batch_size
+                    end_idx = min(start_idx + self.batch_size, len(dataset))
+                    batch_data = dataset[start_idx:end_idx]
+                    
+                    self._process_batch(batch_data, batch_idx)
+                    
+                    activation_data = self._create_activation_data()
+                    
+                    success = self.buffer.write(activation_data)
+                    if not success:
+                        print("Failed to write to buffer, stopping sampling...")
+                        break
+                    
+                    self._clear_buffers()
+                    
+                    torch.cuda.empty_cache()
         
         except Exception as e:
             print(f"\nError during sampling: {e}")

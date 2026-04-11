@@ -24,6 +24,7 @@ class GatePredictorTrainer:
         self.use_wandb = use_wandb
         
         self.model.to(self.device)
+        self.model.to(torch.bfloat16)
         self.model.train()
         
         self.optimizer = optim.AdamW(
@@ -61,6 +62,13 @@ class GatePredictorTrainer:
         print(f"  Use wandb: {use_wandb}")
     
     def add_sample(self, attn_hidden_states: torch.Tensor, gate_logits: torch.Tensor, seq_lengths: torch.Tensor):
+        if attn_hidden_states.dim() == 4 and attn_hidden_states.shape[0] == 1:
+            attn_hidden_states = attn_hidden_states.squeeze(0)
+        if gate_logits.dim() == 4 and gate_logits.shape[0] == 1:
+            gate_logits = gate_logits.squeeze(0)
+        if seq_lengths.dim() == 2 and seq_lengths.shape[0] == 1:
+            seq_lengths = seq_lengths.squeeze(0)
+        
         self.batch_buffer.append({
             'attn_hidden_states': attn_hidden_states.to(self.device),
             'gate_logits': gate_logits.to(self.device),
@@ -78,8 +86,11 @@ class GatePredictorTrainer:
         
         self.optimizer.zero_grad()
         
-        total_loss = 0.0
+        total_loss = torch.tensor(0.0, device=self.device)
         num_tokens = 0
+        total_correct = 0
+        total_top1_correct = 0
+        total_top2_correct = 0
         
         for layer_idx in range(self.model.num_layers):
             layer_attn = batch_data['attn_hidden_states'][:, layer_idx]
@@ -87,33 +98,51 @@ class GatePredictorTrainer:
             seq_lengths = batch_data['seq_lengths']
             
             batch_size, seq_len, hidden_dim = layer_attn.shape
-            layer_attn_flat = layer_attn.view(-1, hidden_dim)
+            layer_attn_flat = layer_attn.reshape(-1, hidden_dim)
             
             predictions = self.model(layer_attn_flat, layer_idx)
             
-            gate_flat = layer_gate.view(-1, layer_gate.shape[-1])
+            gate_flat = layer_gate.reshape(-1, layer_gate.shape[-1])
             
             valid_mask = self._create_valid_mask(seq_lengths, seq_len)
-            valid_mask_flat = valid_mask.view(-1)
+            valid = valid_mask.reshape(-1)
             
-            if valid_mask_flat.sum() > 0:
-                predictions_valid = predictions[valid_mask_flat]
-                gate_valid = gate_flat[valid_mask_flat]
+            if valid.sum() > 0:
+                predictions_valid = predictions[valid]
+                gate_valid = gate_flat[valid]
                 
                 loss = self.criterion(predictions_valid, gate_valid.argmax(dim=-1))
-                total_loss += loss.item()
-                num_tokens += valid_mask_flat.sum().item()
+                total_loss = total_loss + loss
+                
+                num_tokens += valid.sum().item()
+                
+                predicted_experts = predictions_valid.argmax(dim=-1)
+                true_experts = gate_valid.argmax(dim=-1)
+                
+                correct = (predicted_experts == true_experts).sum().item()
+                total_correct += correct
+                
+                top2_probs, top2_indices = predictions_valid.topk(2, dim=-1)
+                top1_correct = (top2_indices[:, 0] == true_experts).sum().item()
+                top2_correct = (top2_indices[:, 1] == true_experts).sum().item()
+                
+                total_top1_correct += top1_correct
+                total_top2_correct += top2_correct
         
         if num_tokens > 0:
-            total_loss = total_loss / self.model.num_layers
-            total_loss.backward()
+            avg_loss = total_loss / self.model.num_layers
+            avg_loss.backward()
             self.optimizer.step()
         
-        self.total_loss += total_loss
+        self.total_loss += avg_loss.item()
         self.total_batches += 1
         self.total_samples += len(self.batch_buffer)
         
-        self._log_metrics(total_loss, num_tokens)
+        accuracy = total_correct / num_tokens if num_tokens > 0 else 0.0
+        top1_accuracy = total_top1_correct / num_tokens if num_tokens > 0 else 0.0
+        top2_accuracy = total_top2_correct / num_tokens if num_tokens > 0 else 0.0
+        
+        self._log_metrics(avg_loss.item(), num_tokens, accuracy, top1_accuracy, top2_accuracy)
         
         self.batch_buffer.clear()
     
@@ -129,8 +158,8 @@ class GatePredictorTrainer:
             gate = item['gate_logits']
             seq_len = item['seq_lengths']
             
-            if attn.shape[2] < max_seq_len:
-                pad_size = max_seq_len - attn.shape[2]
+            if attn.shape[1] < max_seq_len:
+                pad_size = max_seq_len - attn.shape[1]
                 attn = torch.nn.functional.pad(attn, (0, 0, 0, pad_size), value=0)
                 gate = torch.nn.functional.pad(gate, (0, 0, 0, pad_size), value=0)
             
@@ -153,13 +182,14 @@ class GatePredictorTrainer:
         
         return mask
     
-    def _log_metrics(self, loss: float, num_tokens: int):
+    def _log_metrics(self, loss: float, num_tokens: int, accuracy: float, top1_accuracy: float, top2_accuracy: float):
         elapsed_time = time.time() - self.start_time
         avg_loss = self.total_loss / self.total_batches if self.total_batches > 0 else 0.0
         samples_per_per_sec = self.total_samples / elapsed_time if elapsed_time > 0 else 0.0
         
         print(f"  Batch {self.total_batches}: Loss={loss:.4f}, "
               f"Avg Loss={avg_loss:.4f}, Tokens={num_tokens}, "
+              f"Acc={accuracy:.2%}, Top1={top1_accuracy:.2%}, Top2={top2_accuracy:.2%}, "
               f"Samples/sec={samples_per_per_sec:.2f}")
         
         if self.use_wandb:
@@ -168,6 +198,9 @@ class GatePredictorTrainer:
                 "loss": loss,
                 "avg_loss": avg_loss,
                 "num_tokens": num_tokens,
+                "accuracy": accuracy,
+                "top1_accuracy": top1_accuracy,
+                "top2_accuracy": top2_accuracy,
                 "samples_per_second": samples_per_per_sec,
                 "total_samples": self.total_samples,
                 "elapsed_time": elapsed_time
