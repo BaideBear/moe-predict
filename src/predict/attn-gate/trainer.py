@@ -128,7 +128,10 @@ class GatePredictorTrainer:
                 top1_correct = (top2_indices[:, 0] == true_top2_indices[:, 0]).sum().item()
                 
                 pred_in_true_top2 = (top2_indices.unsqueeze(-1) == true_top2_indices.unsqueeze(1)).any(dim=-1)
-                top2_correct = pred_in_true_top2.any(dim=-1).sum().item()
+                # 检查top2的expert是否有交集
+                # top2_correct = pred_in_true_top2.any(dim=-1).sum().item()
+                # 检查top2包含的expert是否完全相同
+                top2_correct = ((top2_indices[:, 0] == true_experts) | (top2_indices[:, 1] == true_experts)).sum().item()
                 
                 total_top1_correct += top1_correct
                 total_top2_correct += top2_correct

@@ -74,6 +74,7 @@ MoE-predict/
 - **异步并行**：采样和训练可以同时进行，提高整体效率
 - **内存管理**：环形缓冲区实现内存复用，防止OOM
 - **可扩展性**：支持多种数据格式模式
+- **多轮训练支持**：通过epochs参数控制数据集重复采样次数，训练模块无需关心epoch概念
 
 **支持的数据模式**：
 1. `attn_gate`: Attention层前激活值 + Gate Logits
@@ -103,6 +104,7 @@ buffer = create_buffer(
     device="cuda"
 )
 
+# 创建采样器，指定epochs=5进行5轮训练
 sampler = OnlineSampler(
     model=model,
     tokenizer=tokenizer,
@@ -110,7 +112,8 @@ sampler = OnlineSampler(
     buffer=buffer,
     pattern="attn_gate",
     batch_size=1,
-    max_seq_length=2048
+    max_seq_length=2048,
+    epochs=5  # 指定训练轮数
 )
 
 sampler.start()
