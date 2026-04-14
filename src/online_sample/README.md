@@ -208,11 +208,13 @@ Token序列 + Gate Logits
 | `batch_size` | int | 1 | 采样批次大小 |
 | `max_seq_length` | int | 2048 | 最大序列长度 |
 | `trust_remote_code` | bool | False | 是否信任远程代码 |
+| `epochs` | int | 1 | 训练轮数，控制数据集重复采样次数 |
 
 #### 主要方法
 
 - `start()`
   - 启动在线采样（异步执行）
+  - 如果指定了epochs > 1，会自动重复采样数据集指定次数
 
 - `stop()`
   - 停止采样
@@ -222,6 +224,13 @@ Token序列 + Gate Logits
 
 - `join(timeout: Optional[float] = None)`
   - 等待采样线程结束
+
+**Epochs功能说明**：
+- `epochs`参数控制数据集的重复采样次数
+- 当epochs > 1时，sampler会自动循环采样整个数据集指定次数
+- 每个epoch都会显示进度信息
+- 适用于需要多次遍历数据集进行训练的场景
+- 训练模块无需关心epoch，只需持续从buffer读取器数据
 
 ### 3. PredictorInterface
 

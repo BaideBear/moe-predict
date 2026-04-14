@@ -9,8 +9,8 @@ SCRIPT_PATH="${PROJECT_ROOT}/src/predict/attn-gate/train_predictor.py"
 
 # Models to test (excluding Phi-tiny-MoE)
 MODELS=(
-    "${PROJECT_ROOT}/models/DeepSeek-V2-Lite-Chat"
-    # "${PROJECT_ROOT}/models/Mixtral-8x7B-v0.1"
+    # "${PROJECT_ROOT}/models/DeepSeek-V2-Lite-Chat"
+    "${PROJECT_ROOT}/models/Mixtral-8x7B-v0.1"
     # "${PROJECT_ROOT}/models/Qwen3-30B-A3B"
 )
 

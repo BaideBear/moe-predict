@@ -1,0 +1,114 @@
+_wandb:
+    value:
+        cli_version: 0.25.1
+        e:
+            izmdhsn89kohlop712ud7nk78hidtha0:
+                args:
+                    - --model_path
+                    - /data1/gx/MoE-predict/models/DeepSeek-V2-Lite-Chat
+                    - --dataset_path
+                    - /data1/gx/MoE-predict/dataset/processed/train/mmlu.jsonl
+                    - --pattern
+                    - attn_gate
+                    - --batch_size
+                    - "1"
+                    - --max_seq_length
+                    - "2048"
+                    - --buffer_size_gb
+                    - "2.0"
+                    - --max_samples
+                    - "12000"
+                    - --epochs
+                    - "5"
+                    - --train_batch_size
+                    - "15"
+                    - --learning_rate
+                    - "1e-3"
+                    - --weight_decay
+                    - "0.01"
+                    - --checkpoint_dir
+                    - /data1/gx/MoE-predict/predict_models/attn-gate/DeepSeek-V2-Lite-Chat/mmlu
+                    - --checkpoint_interval
+                    - "2000"
+                    - --use_wandb
+                    - --wandb_project
+                    - moe-gate-predictor
+                    - --wandb_run_name
+                    - DeepSeek-V2-Lite-Chat-mmlu
+                codePath: src/predict/attn-gate/train_predictor.py
+                codePathLocal: train_predictor.py
+                cpu_count: 24
+                cpu_count_logical: 48
+                cudaVersion: "12.2"
+                disk:
+                    /:
+                        total: "934669557760"
+                        used: "889885339648"
+                email: 3345180277@qq.com
+                executable: /home/gx/miniconda3/envs/MoE-test/bin/python
+                git:
+                    commit: b03d9830c7474d09483752e5a8ce2287d463fad0
+                    remote: https://github.com/BaideBear/moe-predict.git
+                gpu: NVIDIA RTX A6000
+                gpu_count: 4
+                gpu_nvidia:
+                    - architecture: Ampere
+                      cudaCores: 10752
+                      memoryTotal: "51527024640"
+                      name: NVIDIA RTX A6000
+                      uuid: GPU-56488a1d-fbbe-af5f-56e4-23f6f983d9b0
+                    - architecture: Ampere
+                      cudaCores: 10752
+                      memoryTotal: "51527024640"
+                      name: NVIDIA RTX A6000
+                      uuid: GPU-57936391-3548-4e9b-3a76-171251751d17
+                    - architecture: Ampere
+                      cudaCores: 10752
+                      memoryTotal: "51527024640"
+                      name: NVIDIA RTX A6000
+                      uuid: GPU-8ed8fdd7-cd60-7271-c8e8-1684f55cd9ea
+                    - architecture: Ampere
+                      cudaCores: 10752
+                      memoryTotal: "51527024640"
+                      name: NVIDIA RTX A6000
+                      uuid: GPU-860f949a-7709-0357-5681-d784e5abea66
+                host: amax
+                memory:
+                    total: "404336435200"
+                os: Linux-5.4.0-42-generic-x86_64-with-glibc2.31
+                program: /data1/gx/MoE-predict/src/predict/attn-gate/train_predictor.py
+                python: CPython 3.11.15
+                root: /data1/gx/MoE-predict/src/predict/attn-gate
+                startedAt: "2026-04-10T14:32:25.560695Z"
+                writerId: izmdhsn89kohlop712ud7nk78hidtha0
+        m: []
+        python_version: 3.11.15
+        t:
+            "1":
+                - 1
+                - 11
+                - 49
+                - 71
+            "2":
+                - 1
+                - 11
+                - 49
+                - 71
+            "3":
+                - 2
+                - 3
+                - 13
+                - 16
+            "4": 3.11.15
+            "5": 0.25.1
+            "6": 4.51.0
+            "12": 0.25.1
+            "13": linux-x86_64
+device:
+    value: cuda
+learning_rate:
+    value: 0.001
+train_batch_size:
+    value: 15
+weight_decay:
+    value: 0.01
