@@ -10,10 +10,8 @@ from online_sample.utils import get_moe_layer_info
 
 class LayerPredictor(nn.Module):
     """
-    PROBE 公式(7): Gate-initialized Lookahead Predictor
-
-    \hat{l}_L = W_L h_{L-1} + b_L  +  \hat{W}^2_L \sigma(\hat{W}^1_L h_{L-1})
-                冻结先验                零初始化残差 MLP
+    PROBE: Gate-initialized Lookahead Predictor
+    ŷ = W_L h_{L-1} + b_L  +  \hat{W}^2_L \sigma(\hat{W}^1_L h_{L-1})
     """
 
     def __init__(self, gate_weight: torch.Tensor, gate_bias: torch.Tensor,
@@ -22,38 +20,51 @@ class LayerPredictor(nn.Module):
         self.num_experts = num_experts
         self.input_dim = input_dim
 
-        # 冻结先验：克隆目标层 gate 的参数，训练时不更新
-        self.register_buffer('gate_w', gate_weight.clone())
-        self.register_buffer('gate_b', gate_bias.clone())
+        # 1. 验证并处理 Gate 权重
+        # 预期形状: [num_experts, input_dim]
+        gw = gate_weight.clone().float()
+        if gw.shape != (num_experts, input_dim):
+            if gw.shape == (input_dim, num_experts):
+                gw = gw.t()
+            else:
+                raise RuntimeError(f"Gate weight shape {gw.shape} incompatible with "
+                                   f"input_dim {input_dim} and num_experts {num_experts}")
 
-        # 可训练残差 MLP: Linear -> SiLU -> Linear
+        gb = gate_bias.clone().float() if gate_bias is not None else torch.zeros(num_experts).float()
+
+        self.register_buffer('gate_w', gw)
+        self.register_buffer('gate_b', gb)
+
+        # 2. 可训练残差 MLP
+        # 最后一层必须输出 num_experts (所有专家的 logits)
         self.residual_mlp = nn.Sequential(
-            nn.Linear(input_dim, residual_hidden_dim),   # \hat{W}^1_L
-            nn.SiLU(),                                    # \sigma
-            nn.Linear(residual_hidden_dim, num_experts)  # \hat{W}^2_L
+            nn.Linear(input_dim, residual_hidden_dim),
+            nn.SiLU(),
+            nn.Linear(residual_hidden_dim, num_experts)
         )
 
-        # 零初始化确保冷启动时 predictor \equiv gate
+        # 零初始化
         nn.init.zeros_(self.residual_mlp[-1].weight)
         nn.init.zeros_(self.residual_mlp[-1].bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """x: [N, input_dim]  ->  logit [N, num_experts]"""
-        prior = x @ self.gate_w.t() + self.gate_b
+        # 维度检查 (Debug)
+        if x.shape[-1] != self.input_dim:
+            raise RuntimeError(f"Input dim mismatch: expected {self.input_dim}, got {x.shape[-1]}")
+
+        # prior: [N, input_dim] @ [input_dim, num_experts] + [num_experts] -> [N, num_experts]
+        prior = torch.matmul(x, self.gate_w.t()) + self.gate_b
         residual = self.residual_mlp(x)
         return prior + residual
 
 
 class PredictorModel(nn.Module):
-    """每层一个独立的 LayerPredictor，结构与 PEPP 的 PredictorModel 一致"""
-
     def __init__(self, num_layers: int, input_dim: int, num_experts: int,
                  gate_params: list, residual_hidden_dim: int = 2048):
-        """
-        gate_params: list of tuples [(gate_w_l0, gate_b_l0), (gate_w_l1, gate_b_l1), ...]
-        """
         super().__init__()
         self.num_layers = num_layers
+        self.num_experts = num_experts
         self.layer_predictors = nn.ModuleList([
             LayerPredictor(gate_w, gate_b, input_dim, num_experts, residual_hidden_dim)
             for gate_w, gate_b in gate_params
@@ -65,22 +76,45 @@ class PredictorModel(nn.Module):
 
 def create_predictor_model(model, num_layers: int, input_dim: int, num_experts: int,
                            residual_hidden_dim: int = 2048) -> PredictorModel:
-    """从 base MoE 模型中提取每层 gate 的 weight/bias，构建 PROBE 预测器"""
+    """
+    从 base MoE 模型中提取每层 gate 的 weight/bias。
+    强制以第一层 gate 的权重形状为准，忽略可能错误的 num_experts_config。
+    """
     gate_params = []
+
+    # 1. 首先通过第一层确定真实的专家数量
+    first_info = get_moe_layer_info(model, 0)
+    if first_info is None:
+        # 如果第0层没找到，就找第一个能找到的
+        for i in range(num_layers):
+            info = get_moe_layer_info(model, i)
+            if info:
+                first_info = info
+                break
+
+    if first_info is None:
+        raise RuntimeError("No MoE gates found in the model")
+
+    actual_num_experts = first_info['gate_module'].weight.shape[0]
+    print(f"PROBE: Detected actual num_experts = {actual_num_experts} (Config was {num_experts_config})")
+
+    # 2. 提取所有层的参数
     for layer_idx in range(num_layers):
         info = get_moe_layer_info(model, layer_idx)
         if info is None:
-            raise ValueError(f"Layer {layer_idx}: no MoE gate found")
+            continue
         gate_module = info['gate_module']
+
         gate_w = gate_module.weight.data
         gate_b = gate_module.bias.data if hasattr(gate_module, 'bias') and gate_module.bias is not None \
-            else torch.zeros(gate_module.out_features, dtype=gate_w.dtype)
+            else torch.zeros(actual_num_experts, dtype=gate_w.dtype)
+
         gate_params.append((gate_w, gate_b))
 
     return PredictorModel(
         num_layers=num_layers,
         input_dim=input_dim,
-        num_experts=num_experts,
+        num_experts=actual_num_experts,
         gate_params=gate_params,
         residual_hidden_dim=residual_hidden_dim,
     )

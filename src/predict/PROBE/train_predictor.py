@@ -21,6 +21,7 @@ def main():
     parser.add_argument('--dataset_path', type=str, required=True, help='Path to the training dataset')
     parser.add_argument('--pattern', type=str, default='attn_gate',
                         choices=['attn_gate', 'gate_input', 'token_gate'], help='Data pattern')
+    parser.add_argument('--save_dir', type=str, required=True)
     parser.add_argument('--buffer_size_gb', type=float, default=4.0, help='Buffer size in GB')
     parser.add_argument('--batch_size', type=int, default=1, help='Sampler batch size')
     parser.add_argument('--max_seq_length', type=int, default=2048, help='Maximum sequence length')
@@ -39,6 +40,7 @@ def main():
     print("=" * 60)
 
     print("\n1. Loading model and tokenizer...")
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"   # 目前只有两张卡可用(20260414)
     model = AutoModelForCausalLM.from_pretrained(
         args.model_path,
         trust_remote_code=True,
@@ -119,7 +121,7 @@ def main():
     try:
         trainer.train(
             num_epochs=args.num_epochs,
-            save_dir=os.path.join("./checkpoints", "PROBE"),
+            save_dir=os.path.join(args.save_dir, "PROBE"),
             max_samples_per_epoch=args.max_samples_per_epoch
         )
     except KeyboardInterrupt:
