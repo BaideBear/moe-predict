@@ -5,22 +5,23 @@
 SOURCE_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ===== 配置参数（按需修改） =====
-MODEL_PATH="/path/to/deepseek-ai/DeepSeek-V2-Lite"
-DATASET_PATH="${SOURCE_DIR}/../../../dataset/processed/train"
-CHECKPOINT_DIR="${SOURCE_DIR}/checkpoints"
+MODEL_PATH="/data1/gx/MoE-predict/models/DeepSeek-V2-Lite-Chat"
+DATASET_PATH="/data1/gx/MoE-predict/dataset/processed/train"
+CHECKPOINT_DIR="/data1/kly/moe-predict/predict_models/PROBE"
 BUFFER_SIZE_GB=4.0
 BATCH_SIZE=1
 MAX_SEQ_LENGTH=2048
 NUM_EPOCHS=10
 LEARNING_RATE=1e-3
 WEIGHT_DECAY=1e-4
-TOP_K_ROUTING=8
+TOP_K_ROUTING=6
 CHECKPOINT_INTERVAL=50
 # =================================
 
 echo "================================================"
 echo "  PROBE Predictor Training"
 echo "================================================"
+echo "  SOURCE_DIR:   ${SOURCE_DIR}"
 echo "  Model:        ${MODEL_PATH}"
 echo "  Dataset:      ${DATASET_PATH}"
 echo "  Checkpoints:  ${CHECKPOINT_DIR}"
@@ -30,7 +31,7 @@ echo "  LR:           ${LEARNING_RATE}"
 echo "  Top-k:        ${TOP_K_ROUTING}"
 echo "================================================"
 
-python "${SOURCE_DIR}/train_predictor.py" \
+python "./train_predictor.py" \
     --model_path "${MODEL_PATH}" \
     --dataset_path "${DATASET_PATH}" \
     --buffer_size_gb ${BUFFER_SIZE_GB} \
