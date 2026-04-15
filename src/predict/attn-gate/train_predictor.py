@@ -60,6 +60,7 @@ def parse_args():
     parser.add_argument('--wandb_run_name', type=str, default=None, help='Wandb run name')
     parser.add_argument('--checkpoint_dir', type=str, default=None, help='Directory to save checkpoints')
     parser.add_argument('--checkpoint_interval', type=int, default=1000, help='Save checkpoint every N samples')
+    parser.add_argument('--load_checkpoint', type=str, default=None, help='Path to checkpoint file to load')
     return parser.parse_args()
 
 
@@ -110,8 +111,15 @@ def main():
     print(f"  Model name: {model_config.model_name}")
     print(f"  Number of layers: {model_config.num_layers}")
     print(f"  Hidden dimension: {model_config.hidden_dim}")
-    print(f"  Number of experts: {model_config.num_experts}")
+    print(f"  Number of experts (from config): {model_config.num_experts}")
     print(f"  Max sequence length: {model_config.max_seq_length}")
+    
+    if hasattr(model.config, 'n_routed_experts'):
+        print(f"  [DEBUG] n_routed_experts from config: {model.config.n_routed_experts}")
+    if hasattr(model.config, 'num_local_experts'):
+        print(f"  [DEBUG] num_local_experts from config: {model.config.num_local_experts}")
+    if hasattr(model.config, 'num_experts'):
+        print(f"  [DEBUG] num_experts from config: {model.config.num_experts}")
     
     # Step 3: Detect MoE layers
     print("\n[Step 3] Detecting MoE layers...")
@@ -201,8 +209,18 @@ def main():
                     print(f"  Tokens shape: {data.tokens.shape}")
                     print(f"  Gate logits shape: {data.gate_logits.shape}")
                     
+                    num_samples_batch, num_layers, seq_len, num_experts_from_gate = data.gate_logits.shape
+                    print(f"\n  [DEBUG] Gate shape analysis:")
+                    print(f"    num_samples: {num_samples_batch}")
+                    print(f"    num_layers: {num_layers}")
+                    print(f"    seq_len: {seq_len}")
+                    print(f"    num_experts (from gate): {num_experts_from_gate}")
+                    print(f"    num_experts (from config): {model_config.num_experts}")
+                    if num_experts_from_gate != model_config.num_experts:
+                        print(f"    ⚠️  MISMATCH! Gate has {num_experts_from_gate} experts, but config says {model_config.num_experts}")
+                    
                     if data.attn_hidden_states is not None:
-                        print(f"  Attention hidden states shape: {data.attn_hidden_states.shape}")
+                        print(f"\n  Attention hidden states shape: {data.attn_hidden_states.shape}")
                     
                     if data.gate_inputs is not None:
                         print(f"  Gate inputs shape: {data.gate_inputs.shape}")
@@ -210,11 +228,9 @@ def main():
                     if data.seq_lengths is not None:
                         print(f"  Sequence lengths: {data.seq_lengths}")
                     
-                    # Parse model structure from sampled data
-                    num_samples_batch, num_layers, seq_len, num_experts = data.gate_logits.shape
                     print(f"\n  Model structure from sampled data:")
                     print(f"    Number of MoE layers: {num_layers}")
-                    print(f"    Number of experts to predict: {num_experts}")
+                    print(f"    Number of experts to predict: {num_experts_from_gate}")
                     print(f"    Sequence length: {seq_len}")
                     
                     if data.attn_hidden_states is not None:
@@ -226,13 +242,13 @@ def main():
                     print(f"    Model type: simple_mlp")
                     print(f"    Number of layers: {num_layers}")
                     print(f"    Input dimension: {hidden_dim}")
-                    print(f"    Number of experts: {num_experts}")
+                    print(f"    Number of experts: {num_experts_from_gate}")
                     
                     predictor_model = get_predictor_model(
                         model_type="simple_mlp",
                         num_layers=num_layers,
                         input_dim=hidden_dim,
-                        num_experts=num_experts,
+                        num_experts=num_experts_from_gate,
                         hidden_dim=2048,
                         dropout=0.1
                     )
@@ -248,6 +264,10 @@ def main():
                         wandb_project=args.wandb_project,
                         wandb_run_name=args.wandb_run_name
                     )
+                    
+                    # Load checkpoint if provided
+                    if args.load_checkpoint is not None:
+                        trainer.load_checkpoint(args.load_checkpoint)
                     
                     print(f"  ✓ Predictor model and trainer created")
                     

@@ -47,7 +47,14 @@ def extract_model_config(
             hidden_dim = model.config.hidden_size
         
         if num_experts is None:
-            num_experts = model.config.num_local_experts if hasattr(model.config, 'num_local_experts') else 8
+            if hasattr(model.config, 'num_local_experts'):
+                num_experts = model.config.num_local_experts
+            elif hasattr(model.config, 'n_routed_experts'):
+                num_experts = model.config.n_routed_experts
+            elif hasattr(model.config, 'num_experts'):
+                num_experts = model.config.num_experts
+            else:
+                num_experts = 8
         
         return ModelConfig(
             model_name=model_name,

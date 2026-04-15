@@ -3,10 +3,13 @@
 # Test script for MoE gate predictor training
 # This script tests the training module with minimal samples
 
+export CUDA_VISIBLE_DEVICES=0,1
 PROJECT_ROOT="/data1/gx/MoE-predict"
-MODEL_NAME="Mixtral-8x7B-Instruct-v0.1"
+MODEL_NAME="Qwen3-30B-A3B"
+# MODEL_NAME="Mixtral-8x7B-Instruct-v0.1"
 # MODEL_NAME="DeepSeek-V2-Lite-Chat"
 DATA_NAME="mmlu"
+# DATA_NAME="wikitext"
 DATASET_PATH="${PROJECT_ROOT}/dataset/processed/train/${DATA_NAME}.jsonl"
 SCRIPT_PATH="${PROJECT_ROOT}/src/predict/attn-gate/train_predictor.py"
 
@@ -25,7 +28,7 @@ TRAIN_BATCH_SIZE=15
 LEARNING_RATE=1e-3
 WEIGHT_DECAY=0.01
 USE_WANDB=true
-CHECKPOINT_DIR="${PROJECT_ROOT}/predict_models/attn-gate/${MODEL_NAME}/${DATA_NAME}"
+CHECKPOINT_DIR="${PROJECT_ROOT}/predict_models/attn-gate/${MODEL_NAME}/${DATA_NAME}-mlp-without-dropout"
 CHECKPOINT_INTERVAL=2000
 
 echo "=========================================="
@@ -89,7 +92,8 @@ python "${SCRIPT_PATH}" \
     --checkpoint_interval "${CHECKPOINT_INTERVAL}" \
     --use_wandb \
     --wandb_project "moe-gate-predictor" \
-    --wandb_run_name "${MODEL_NAME}-${DATA_NAME}"
+    --wandb_run_name "${MODEL_NAME}-${DATA_NAME}-mlp-without-dropout" \
+    # --load_checkpoint "/data1/gx/MoE-predict/predict_models/attn-gate/Qwen3-30B-A3B/mmlu/predictor_sample_32000.pt"
 
 EXIT_CODE=$?
 

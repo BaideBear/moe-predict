@@ -94,12 +94,17 @@ class OnlineSampler:
     
     def _create_gate_hook(self, layer_idx: int):
         def hook(module, input, output):
-            if isinstance(output, tuple):
-                router_output = output[0]
+            # 针对deepseek的special case
+            if hasattr(module, '_intercepted_scores') and module._intercepted_scores is not None:
+                gate_output = module._intercepted_scores.detach()
             else:
-                router_output = output
+                if isinstance(output, tuple):
+                    router_output = output[0]
+                else:
+                    router_output = output
+                
+                gate_output = router_output.detach()
             
-            gate_output = router_output.detach()
             self.buffer_gate_outputs[layer_idx].append(gate_output)
             
             if len(input) > 0:
