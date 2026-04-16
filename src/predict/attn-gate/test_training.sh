@@ -3,11 +3,11 @@
 # Test script for MoE gate predictor training
 # This script tests the training module with minimal samples
 
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=2,3
 PROJECT_ROOT="/data1/gx/MoE-predict"
-MODEL_NAME="Qwen3-30B-A3B"
+# MODEL_NAME="Qwen3-30B-A3B"
 # MODEL_NAME="Mixtral-8x7B-Instruct-v0.1"
-# MODEL_NAME="DeepSeek-V2-Lite-Chat"
+MODEL_NAME="DeepSeek-V2-Lite-Chat"
 DATA_NAME="mmlu"
 # DATA_NAME="wikitext"
 DATASET_PATH="${PROJECT_ROOT}/dataset/processed/train/${DATA_NAME}.jsonl"

@@ -37,12 +37,8 @@ class OnlineSampler:
         self.batch_size = batch_size
         self.max_seq_length = max_seq_length
         self.trust_remote_code = trust_remote_code
-<<<<<<< HEAD
-
-=======
         self.epochs = epochs
         
->>>>>>> 11c9d61ba349d416f608b6b4a1e7d14be2fe0b58
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.model_config = extract_model_config(model, buffer.model_config.model_name, max_seq_length)
@@ -103,7 +99,6 @@ class OnlineSampler:
             if hasattr(module, '_intercepted_scores') and module._intercepted_scores is not None:
                 gate_output = module._intercepted_scores.detach()
             else:
-<<<<<<< HEAD
                 if isinstance(output, tuple):
                     router_output = output[0]
                 else:
@@ -111,11 +106,6 @@ class OnlineSampler:
                 
                 gate_output = router_output.detach()
             
-=======
-                router_output = output
-
-            gate_output = router_output.detach()
->>>>>>> 9094112998bba97522d1f67ff9853427103150dd
             self.buffer_gate_outputs[layer_idx].append(gate_output)
 
             if len(input) > 0:
@@ -327,33 +317,6 @@ class OnlineSampler:
         print(f"\nStarting online sampling...")
         print(f"Total samples: {len(dataset)}")
         print(f"Batch size: {self.batch_size}")
-<<<<<<< HEAD
-        print(f"Number of batches: {num_batches}\n")
-
-        try:
-            for batch_idx in tqdm(range(num_batches), desc="Sampling"):
-                if self._stop_event.is_set():
-                    print("Stop event received, stopping sampling...")
-                    break
-
-                start_idx = batch_idx * self.batch_size
-                end_idx = min(start_idx + self.batch_size, len(dataset))
-                batch_data = dataset[start_idx:end_idx]
-
-                self._process_batch(batch_data, batch_idx)
-
-                activation_data = self._create_activation_data()
-
-                success = self.buffer.write(activation_data)
-                if not success:
-                    print("Failed to write to buffer, stopping sampling...")
-                    break
-
-                self._clear_buffers()
-
-                torch.cuda.empty_cache()
-
-=======
         print(f"Number of batches: {num_batches}")
         print(f"Epochs: {self.epochs}")
         print(f"Total samples to process: {len(dataset) * self.epochs}\n")
@@ -387,7 +350,6 @@ class OnlineSampler:
                     
                     torch.cuda.empty_cache()
         
->>>>>>> 11c9d61ba349d416f608b6b4a1e7d14be2fe0b58
         except Exception as e:
             print(f"\nError during sampling: {e}")
             import traceback
