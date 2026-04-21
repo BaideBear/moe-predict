@@ -1,9 +1,9 @@
 import torch.nn as nn
 from typing import Dict, Any
 try:
-    from .models import SimpleMLPPredictorModel, create_simple_mlp_predictor
+    from .models import SimpleMLPPredictorModel, create_simple_mlp_predictor, create_mlp_without_dropout_predictor, create_lstm_predictor
 except ImportError:
-    from models import SimpleMLPPredictorModel, create_simple_mlp_predictor
+    from models import SimpleMLPPredictorModel, create_simple_mlp_predictor, create_mlp_without_dropout_predictor, create_lstm_predictor
 
 
 class ModelFactory:
@@ -25,6 +25,8 @@ class ModelFactory:
 
 
 ModelFactory.register("simple_mlp", create_simple_mlp_predictor)
+ModelFactory.register("mlp_without_dropout", create_mlp_without_dropout_predictor)
+ModelFactory.register("lstm", create_lstm_predictor)
 
 
 def get_predictor_model(model_type: str, num_layers: int, input_dim: int, num_experts: int, 

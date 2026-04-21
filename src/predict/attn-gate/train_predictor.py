@@ -70,6 +70,8 @@ def parse_args():
     parser.add_argument('--checkpoint_dir', type=str, default=None, help='Directory to save checkpoints')
     parser.add_argument('--checkpoint_interval', type=int, default=1000, help='Save checkpoint every N samples')
     parser.add_argument('--load_checkpoint', type=str, default=None, help='Path to checkpoint file to load')
+    parser.add_argument('--model_type', type=str, default='simple_mlp', help='Predictor model type (use --list_models to see available models)')
+    parser.add_argument('--list_models', action='store_true', help='List available model types and exit')
     parser.add_argument('--loss_type', type=str, default='ce', help='Loss function type: ce, weighted_bce, ranking_aware_bce')
     parser.add_argument('--top_k', type=int, default=2, help='Top-k experts for loss calculation')
     parser.add_argument('--lambda_ranking', type=float, default=0.3, help='Weight for ranking loss in ranking_aware_bce')
@@ -83,6 +85,20 @@ def parse_args():
 
 def main():
     args = parse_args()
+    
+    available_models = list_available_models()
+    
+    if args.list_models:
+        print("Available predictor model types:")
+        for model_type in available_models:
+            print(f"  - {model_type}")
+        return
+    
+    if args.model_type not in available_models:
+        print(f"Error: Unknown model type '{args.model_type}'")
+        print(f"Available model types: {available_models}")
+        print("Use --list_models to see all available models")
+        sys.exit(1)
     
     print("=" * 80)
     print("MoE Gate Predictor Training")
@@ -266,13 +282,13 @@ def main():
                     
                     # Create predictor model on first sample
                     print(f"\n  Creating predictor model...")
-                    print(f"    Model type: simple_mlp")
+                    print(f"    Model type: {args.model_type}")
                     print(f"    Number of layers: {num_layers}")
                     print(f"    Input dimension: {hidden_dim}")
                     print(f"    Number of experts: {num_experts_from_gate}")
                     
                     predictor_model = get_predictor_model(
-                        model_type="simple_mlp",
+                        model_type=args.model_type,
                         num_layers=num_layers,
                         input_dim=hidden_dim,
                         num_experts=num_experts_from_gate,

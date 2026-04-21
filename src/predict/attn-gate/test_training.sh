@@ -3,8 +3,8 @@
 # Test script for MoE gate predictor training
 # This script tests the training module with minimal samples
 
-export CUDA_VISIBLE_DEVICES=0,2
-PROJECT_ROOT="/data1/gx/MoE-predict"
+export CUDA_VISIBLE_DEVICES=9,10,11,12,13,14
+PROJECT_ROOT="/data1/gx/moe-predict"
 MODEL_NAME="Qwen3-30B-A3B"
 # MODEL_NAME="Mixtral-8x7B-Instruct-v0.1"
 # MODEL_NAME="DeepSeek-V2-Lite-Chat"
@@ -14,7 +14,8 @@ DATASET_PATH="${PROJECT_ROOT}/dataset/processed/train/${DATA_NAME}.jsonl"
 SCRIPT_PATH="${PROJECT_ROOT}/src/predict/attn-gate/train_predictor.py"
 
 # Loss function configuration
-LOSS_TYPE="ranking_aware_bce"
+LOSS_TYPE="ce"
+# LOSS_TYPE="ranking_aware_bce"
 # LOSS_TYPE="weighted_bce"
 TOP_K=8
 LAMBDA_RANKING=0.3
@@ -33,12 +34,13 @@ BUFFER_SIZE_GB=2.0
 MAX_SAMPLES=12000
 
 # Training configuration
-EPOCHS=3
+EPOCHS=5
 TRAIN_BATCH_SIZE=15
 LEARNING_RATE=1e-3
 WEIGHT_DECAY=0.01
 USE_WANDB=true
-CHECKPOINT_DIR="${PROJECT_ROOT}/predict_models/attn-gate/${MODEL_NAME}/${DATA_NAME}-${LOSS_TYPE}-epoch3_5"
+MODEL_TYPE="lstm"
+CHECKPOINT_DIR="${PROJECT_ROOT}/predict_models/attn-gate/${MODEL_NAME}/${DATA_NAME}-${LOSS_TYPE}-${MODEL_TYPE}"
 CHECKPOINT_INTERVAL=2000
 
 
@@ -57,6 +59,7 @@ echo "Train batch size: ${TRAIN_BATCH_SIZE}"
 echo "Learning rate: ${LEARNING_RATE}"
 echo "Weight decay: ${WEIGHT_DECAY}"
 echo "Use wandb: ${USE_WANDB}"
+echo "Model type: ${MODEL_TYPE}"
 echo "Checkpoint dir: ${CHECKPOINT_DIR}"
 echo "Checkpoint interval: ${CHECKPOINT_INTERVAL}"
 echo "Loss type: ${LOSS_TYPE}"
@@ -101,6 +104,7 @@ python "${SCRIPT_PATH}" \
     --train_batch_size "${TRAIN_BATCH_SIZE}" \
     --learning_rate "${LEARNING_RATE}" \
     --weight_decay "${WEIGHT_DECAY}" \
+    --model_type "${MODEL_TYPE}" \
     --checkpoint_dir "${CHECKPOINT_DIR}" \
     --checkpoint_interval "${CHECKPOINT_INTERVAL}" \
     --loss_type "${LOSS_TYPE}" \
@@ -113,8 +117,8 @@ python "${SCRIPT_PATH}" \
     --top_n_for_ranking "${TOP_N_FOR_RANKING}" \
     --use_wandb \
     --wandb_project "moe-gate-predictor" \
-    --wandb_run_name "${MODEL_NAME}-${DATA_NAME}-${LOSS_TYPE}-epoch3_5" \
-    --load_checkpoint "/data1/gx/MoE-predict/predict_models/attn-gate/Qwen3-30B-A3B/mmlu-ranking_aware_bce/predictor_sample_28000.pt"
+    --wandb_run_name "${MODEL_NAME}-${DATA_NAME}-${LOSS_TYPE}-${MODEL_TYPE}" \
+    # --load_checkpoint "/data1/gx/MoE-predict/predict_models/attn-gate/Qwen3-30B-A3B/mmlu-ranking_aware_bce/predictor_sample_28000.pt"
 
 EXIT_CODE=$?
 

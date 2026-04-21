@@ -58,11 +58,27 @@ def parse_args():
     parser.add_argument('--wandb_project', type=str, default='moe-gate-predictor-eval', help='Wandb project name')
     parser.add_argument('--wandb_run_name', type=str, default=None, help='Wandb run name')
     parser.add_argument('--load_checkpoint', type=str, required=True, help='Path to checkpoint file to load')
+    parser.add_argument('--model_type', type=str, default='simple_mlp', help='Predictor model type (use --list_models to see available models)')
+    parser.add_argument('--list_models', action='store_true', help='List available model types and exit')
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    
+    available_models = list_available_models()
+    
+    if args.list_models:
+        print("Available predictor model types:")
+        for model_type in available_models:
+            print(f"  - {model_type}")
+        return
+    
+    if args.model_type not in available_models:
+        print(f"Error: Unknown model type '{args.model_type}'")
+        print(f"Available model types: {available_models}")
+        print("Use --list_models to see all available models")
+        sys.exit(1)
     
     top_k_values = [int(k.strip()) for k in args.top_k_values.split(',')]
     
@@ -227,13 +243,13 @@ def main():
                         print(f"    Hidden dimension: {hidden_dim}")
                     
                     print(f"\n  Creating predictor model...")
-                    print(f"    Model type: simple_mlp")
+                    print(f"    Model type: {args.model_type}")
                     print(f"    Number of layers: {num_layers}")
                     print(f"    Input dimension: {hidden_dim}")
                     print(f"    Number of experts: {num_experts_from_gate}")
                     
                     predictor_model = get_predictor_model(
-                        model_type="simple_mlp",
+                        model_type=args.model_type,
                         num_layers=num_layers,
                         input_dim=hidden_dim,
                         num_experts=num_experts_from_gate,

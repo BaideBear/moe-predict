@@ -4,7 +4,7 @@
 # This script tests the evaluation module with trained checkpoints
 
 export CUDA_VISIBLE_DEVICES=2,3
-PROJECT_ROOT="/data1/gx/MoE-predict"
+PROJECT_ROOT="/data1/gx/moe-predict"
 # MODEL_NAME="Qwen3-30B-A3B"
 # MODEL_NAME="Mixtral-8x7B-Instruct-v0.1"
 MODEL_NAME="DeepSeek-V2-Lite-Chat"
@@ -16,6 +16,7 @@ SCRIPT_PATH="${PROJECT_ROOT}/src/predict/attn-gate/test_predictor.py"
 # Model configuration
 MODEL_PATH="${PROJECT_ROOT}/models/${MODEL_NAME}"
 PATTERN="attn_gate"
+MODEL_TYPE="simple_mlp"
 BATCH_SIZE=1
 MAX_SEQ_LENGTH=2048
 BUFFER_SIZE_GB=2.0
@@ -91,9 +92,10 @@ python "${SCRIPT_PATH}" \
     --eval_batch_size "${EVAL_BATCH_SIZE}" \
     --top_k_values "${TOP_K_VALUES}" \
     --load_checkpoint "${CHECKPOINT_FILE}" \
+    --model_type "${MODEL_TYPE}" \
     --use_wandb \
     --wandb_project "moe-gate-predictor-eval" \
-    --wandb_run_name "${MODEL_NAME}-${DATA_NAME}-eval"
+    --wandb_run_name "${MODEL_NAME}-${DATA_NAME}-eval-model_type"
 
 EXIT_CODE=$?
 
