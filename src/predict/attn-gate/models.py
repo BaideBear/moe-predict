@@ -6,9 +6,9 @@ class SimpleMLPPredictor(nn.Module):
         super(SimpleMLPPredictor, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
-            # nn.BatchNorm1d(hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
             nn.GELU(),
-            # nn.Dropout(p=dropout),
+            nn.Dropout(p=dropout),
             nn.Linear(hidden_dim, num_experts)
         )
 

@@ -5,6 +5,11 @@ from typing import Optional, Dict, Any
 import time
 import wandb
 
+try:
+    from .losses import create_loss_function, list_available_losses
+except ImportError:
+    from losses import create_loss_function, list_available_losses
+
 
 class GatePredictorTrainer:
     def __init__(
@@ -16,12 +21,22 @@ class GatePredictorTrainer:
         device: str = "cuda",
         use_wandb: bool = True,
         wandb_project: str = "moe-gate-predictor",
-        wandb_run_name: Optional[str] = None
+        wandb_run_name: Optional[str] = None,
+        loss_type: str = "ce",
+        top_k: int = 2,
+        lambda_ranking: float = 0.3,
+        margin: float = 0.1,
+        weight_top10: float = 3.0,
+        weight_top11_30: float = 1.5,
+        weight_others: float = 0.5,
+        top_n_for_ranking: int = 10
     ):
         self.model = model
         self.device = torch.device(device)
         self.train_batch_size = train_batch_size
         self.use_wandb = use_wandb
+        self.loss_type = loss_type.lower()
+        self.top_k = top_k
         
         self.model.to(self.device)
         self.model.to(torch.bfloat16)
@@ -33,12 +48,23 @@ class GatePredictorTrainer:
             weight_decay=weight_decay
         )
         
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = create_loss_function(
+            loss_type=self.loss_type,
+            top_k=top_k,
+            lambda_ranking=lambda_ranking,
+            margin=margin,
+            weight_top10=weight_top10,
+            weight_top11_30=weight_top11_30,
+            weight_others=weight_others,
+            top_n_for_ranking=top_n_for_ranking
+        )
         
         self.batch_buffer = []
         self.total_samples = 0
         self.total_batches = 0
         self.total_loss = 0.0
+        self.total_wbce_loss = 0.0
+        self.total_ranking_loss = 0.0
         self.start_time = time.time()
         
         if self.use_wandb:
@@ -60,6 +86,7 @@ class GatePredictorTrainer:
         print(f"  Train batch size: {train_batch_size}")
         print(f"  Device: {device}")
         print(f"  Use wandb: {use_wandb}")
+        print(f"  Loss type: {self.loss_type}")
     
     def add_sample(self, attn_hidden_states: torch.Tensor, gate_logits: torch.Tensor, seq_lengths: torch.Tensor):
         if attn_hidden_states.dim() == 4 and attn_hidden_states.shape[0] == 1:
@@ -111,7 +138,10 @@ class GatePredictorTrainer:
                 predictions_valid = predictions[valid]
                 gate_valid = gate_flat[valid]
                 
-                loss = self.criterion(predictions_valid, gate_valid.argmax(dim=-1))
+                if self.loss_type in ["ce", "cross_entropy"]:
+                    loss = self.criterion(predictions_valid, gate_valid.argmax(dim=-1))
+                else:
+                    loss = self.criterion(predictions_valid, gate_valid)
                 total_loss = total_loss + loss
                 
                 num_tokens += valid.sum().item()
