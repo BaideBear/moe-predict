@@ -92,3 +92,5 @@ dmypy.json
 
 wandb/
 nohup.out
+nohup1.out
+nohup2.out

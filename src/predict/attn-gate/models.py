@@ -179,7 +179,7 @@ class LSTMPredictorModel(nn.Module):
         return stacked_outputs
 
 
-def create_lstm_predictor(num_layers: int, input_dim: int, num_experts: int, 
+def create_lstm_predictor(num_layers: int, input_dim: int, num_experts: int, hidden_dim: int = 2048,
                         lstm_hidden_dim: int = 64, projection_dim: int = 128, 
                         num_lstm_layers: int = 2, dropout: float = 0.1) -> LSTMPredictorModel:
     return LSTMPredictorModel(
