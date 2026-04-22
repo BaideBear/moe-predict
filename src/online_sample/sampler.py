@@ -23,7 +23,8 @@ class OnlineSampler:
         batch_size: int = 1,
         max_seq_length: int = 2048,
         trust_remote_code: bool = True,
-        epochs: int = 1
+        epochs: int = 1,
+        start_sample: int = 0
     ):
         self.model = model
         self.tokenizer = tokenizer
@@ -38,6 +39,7 @@ class OnlineSampler:
         self.max_seq_length = max_seq_length
         self.trust_remote_code = trust_remote_code
         self.epochs = epochs
+        self.start_sample = start_sample
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -57,6 +59,7 @@ class OnlineSampler:
         print(f"  Batch size: {batch_size}")
         print(f"  Max seq length: {max_seq_length}")
         print(f"  Epochs: {epochs}")
+        print(f"  Start sample: {start_sample}")
         print(f"  MoE layers: {self.moe_layers}")
 
     def _init_buffers(self):
@@ -319,6 +322,7 @@ class OnlineSampler:
         print(f"Batch size: {self.batch_size}")
         print(f"Number of batches: {num_batches}")
         print(f"Epochs: {self.epochs}")
+        print(f"Start sample (first epoch only): {self.start_sample}")
         print(f"Total samples to process: {len(dataset) * self.epochs}\n")
         
         try:
@@ -328,12 +332,18 @@ class OnlineSampler:
                     print(f"Epoch {epoch + 1}/{self.epochs}")
                     print(f"{'=' * 80}")
                 
+                start_offset = self.start_sample if epoch == 0 else 0
+                if start_offset > 0:
+                    print(f"  Skipping first {start_offset} samples for epoch {epoch + 1}")
+                
                 for batch_idx in tqdm(range(num_batches), desc=f"Sampling Epoch {epoch + 1}/{self.epochs}" if self.epochs > 1 else "Sampling"):
                     if self._stop_event.is_set():
                         print("Stop event received, stopping sampling...")
                         break
                     
-                    start_idx = batch_idx * self.batch_size
+                    start_idx = batch_idx * self.batch_size + start_offset
+                    if start_idx >= len(dataset):
+                        break
                     end_idx = min(start_idx + self.batch_size, len(dataset))
                     batch_data = dataset[start_idx:end_idx]
                     

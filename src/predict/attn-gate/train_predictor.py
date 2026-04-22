@@ -80,6 +80,7 @@ def parse_args():
     parser.add_argument('--weight_top11_30', type=float, default=1.5, help='Weight for top-11 to top-30 experts in weighted BCE')
     parser.add_argument('--weight_others', type=float, default=0.5, help='Weight for other experts in weighted BCE')
     parser.add_argument('--top_n_for_ranking', type=int, default=10, help='Top-n experts considered for ranking loss')
+    parser.add_argument('--start_sample', type=int, default=0, help='Start from this sample index in the first epoch (default: 0)')
     return parser.parse_args()
 
 
@@ -112,6 +113,7 @@ def main():
     print(f"Device: {args.device}")
     print(f"Max samples per epoch: {args.max_samples}")
     print(f"Epochs: {args.epochs}")
+    print(f"Start sample (first epoch): {args.start_sample}")
     print(f"Train batch size: {args.train_batch_size}")
     print(f"Learning rate: {args.learning_rate}")
     print(f"Use wandb: {args.use_wandb}")
@@ -198,7 +200,8 @@ def main():
         batch_size=args.batch_size,
         max_seq_length=args.max_seq_length,
         trust_remote_code=True,
-        epochs=args.epochs
+        epochs=args.epochs,
+        start_sample=args.start_sample
     )
     print("✓ Sampler created successfully")
     
