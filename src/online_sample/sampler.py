@@ -336,7 +336,12 @@ class OnlineSampler:
                 if start_offset > 0:
                     print(f"  Skipping first {start_offset} samples for epoch {epoch + 1}")
                 
-                for batch_idx in tqdm(range(num_batches), desc=f"Sampling Epoch {epoch + 1}/{self.epochs}" if self.epochs > 1 else "Sampling"):
+                actual_num_batches = num_batches - (start_offset + self.batch_size - 1) // self.batch_size
+                if actual_num_batches <= 0:
+                    print(f"  No batches to process in epoch {epoch + 1} (start_offset={start_offset}, num_batches={num_batches})")
+                    continue
+                
+                for batch_idx in tqdm(range(actual_num_batches), desc=f"Sampling Epoch {epoch + 1}/{self.epochs}" if self.epochs > 1 else "Sampling"):
                     if self._stop_event.is_set():
                         print("Stop event received, stopping sampling...")
                         break
