@@ -6,9 +6,9 @@ export HF_HOME=/data1/gx/hf_cache
 export WANDB_DIR=/data1/gx/.cache/wandb
 export CUDA_VISIBLE_DEVICES=0,2
 PROJECT_ROOT="/data1/gx/MoE-predict"
-# MODEL_NAME="Qwen3-30B-A3B"
+MODEL_NAME="Qwen3-30B-A3B"
 # MODEL_NAME="Mixtral-8x7B-Instruct-v0.1"
-MODEL_NAME="DeepSeek-V2-Lite-Chat"
+# MODEL_NAME="DeepSeek-V2-Lite-Chat"
 DATA_NAME="mmlu"
 # DATA_NAME="wikitext"
 DATASET_PATH="${PROJECT_ROOT}/dataset/processed/train/${DATA_NAME}.jsonl"
@@ -41,8 +41,8 @@ TRAIN_BATCH_SIZE=15
 LEARNING_RATE=1e-3
 WEIGHT_DECAY=0.01
 USE_WANDB=true
-MODEL_TYPE="lstm"
-CHECKPOINT_DIR="${PROJECT_ROOT}/predict_models/attn-gate/${MODEL_NAME}/${DATA_NAME}-${LOSS_TYPE}-${MODEL_TYPE}"
+MODEL_TYPE="simple_mlp"
+CHECKPOINT_DIR="${PROJECT_ROOT}/predict_models/attn-gate/${MODEL_NAME}/${DATA_NAME}-${LOSS_TYPE}-${MODEL_TYPE}_h1024"
 CHECKPOINT_INTERVAL=2000
 
 
@@ -119,7 +119,7 @@ python "${SCRIPT_PATH}" \
     --top_n_for_ranking "${TOP_N_FOR_RANKING}" \
     --use_wandb \
     --wandb_project "moe-gate-predictor" \
-    --wandb_run_name "${MODEL_NAME}-${DATA_NAME}-${LOSS_TYPE}-${MODEL_TYPE}" \
+    --wandb_run_name "${MODEL_NAME}-${DATA_NAME}-${LOSS_TYPE}-${MODEL_TYPE}_h1024" \
     # --start_sample 11185 \
     # --load_checkpoint "/data1/gx/MoE-predict/predict_models/attn-gate/Qwen3-30B-A3B/mmlu-weighted_bce/predictor_sample_54000.pt"
 

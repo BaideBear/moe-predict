@@ -295,7 +295,7 @@ def main():
                         num_layers=num_layers,
                         input_dim=hidden_dim,
                         num_experts=num_experts_from_gate,
-                        hidden_dim=2048,
+                        hidden_dim=1024,
                         dropout=0.1
                     )
                     
