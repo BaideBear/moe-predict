@@ -2,12 +2,13 @@
 
 # Test script for MoE gate predictor training
 # This script tests the training module with minimal samples
-
-export CUDA_VISIBLE_DEVICES=9,10,11,12,13,14
-PROJECT_ROOT="/data1/gx/moe-predict"
-MODEL_NAME="Qwen3-30B-A3B"
+export HF_HOME=/data1/gx/hf_cache
+export WANDB_DIR=/data1/gx/.cache/wandb
+export CUDA_VISIBLE_DEVICES=0,2
+PROJECT_ROOT="/data1/gx/MoE-predict"
+# MODEL_NAME="Qwen3-30B-A3B"
 # MODEL_NAME="Mixtral-8x7B-Instruct-v0.1"
-# MODEL_NAME="DeepSeek-V2-Lite-Chat"
+MODEL_NAME="DeepSeek-V2-Lite-Chat"
 DATA_NAME="mmlu"
 # DATA_NAME="wikitext"
 DATASET_PATH="${PROJECT_ROOT}/dataset/processed/train/${DATA_NAME}.jsonl"
@@ -17,7 +18,8 @@ SCRIPT_PATH="${PROJECT_ROOT}/src/predict/attn-gate/train_predictor.py"
 LOSS_TYPE="ce"
 # LOSS_TYPE="ranking_aware_bce"
 # LOSS_TYPE="weighted_bce"
-TOP_K=8
+# 换模型记得修改top-k
+TOP_K=6
 LAMBDA_RANKING=0.3
 MARGIN=0.1
 WEIGHT_TOP10=3.0
@@ -118,7 +120,8 @@ python "${SCRIPT_PATH}" \
     --use_wandb \
     --wandb_project "moe-gate-predictor" \
     --wandb_run_name "${MODEL_NAME}-${DATA_NAME}-${LOSS_TYPE}-${MODEL_TYPE}" \
-    # --load_checkpoint "/data1/gx/MoE-predict/predict_models/attn-gate/Qwen3-30B-A3B/mmlu-ranking_aware_bce/predictor_sample_28000.pt"
+    # --start_sample 11185 \
+    # --load_checkpoint "/data1/gx/MoE-predict/predict_models/attn-gate/Qwen3-30B-A3B/mmlu-weighted_bce/predictor_sample_54000.pt"
 
 EXIT_CODE=$?
 
