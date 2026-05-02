@@ -4,6 +4,7 @@ import os
 import argparse
 import importlib.util
 import time
+import json
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -81,6 +82,7 @@ def parse_args():
     parser.add_argument('--weight_others', type=float, default=0.5, help='Weight for other experts in weighted BCE')
     parser.add_argument('--top_n_for_ranking', type=int, default=10, help='Top-n experts considered for ranking loss')
     parser.add_argument('--start_sample', type=int, default=0, help='Start from this sample index in the first epoch (default: 0)')
+    parser.add_argument('--log_top_experts_file', type=str, default=None, help='Path to log top-6 expert indices per sample from gate logits')
     return parser.parse_args()
 
 
@@ -235,6 +237,12 @@ def main():
     samples_processed = 0
     total_samples_processed = 0
     
+    top_experts_log_file = None
+    if args.log_top_experts_file is not None:
+        top_experts_log_file = open(args.log_top_experts_file, 'w')
+        top_experts_log_file.write('[')
+        first_log_entry = True
+    
     try:
         while True:
             batch = predictor_interface.get_batch()
@@ -248,6 +256,22 @@ def main():
             for data in batch:
                 samples_processed += 1
                 total_samples_processed += 1
+                
+                if top_experts_log_file is not None and data.gate_logits is not None:
+                    gate_logits = data.gate_logits
+                    top6_indices = torch.topk(gate_logits, k=6, dim=-1).indices
+                    top6_indices = top6_indices.cpu().tolist()
+                    entry = {
+                        "sample_id": total_samples_processed,
+                        "top6_expert_indices": top6_indices
+                    }
+                    if not first_log_entry:
+                        top_experts_log_file.write(',\n')
+                    else:
+                        top_experts_log_file.write('\n')
+                        first_log_entry = False
+                    top_experts_log_file.write(json.dumps(entry))
+                    top_experts_log_file.flush()
                 
                 # Extract model structure information from sampled data
                 if samples_processed == 1:
@@ -295,7 +319,7 @@ def main():
                         num_layers=num_layers,
                         input_dim=hidden_dim,
                         num_experts=num_experts_from_gate,
-                        hidden_dim=1024,
+                        hidden_dim=512,
                         dropout=0.1
                     )
                     
@@ -345,6 +369,11 @@ def main():
     
     except KeyboardInterrupt:
         print("\n\nReceived stop signal...")
+    
+    if top_experts_log_file is not None:
+        top_experts_log_file.write('\n]')
+        top_experts_log_file.close()
+        top_experts_log_file = None
     
     # Step 11: Stop sampling and cleanup
     print("\n[Step 11] Stopping sampling and cleanup...")

@@ -59,6 +59,7 @@ def parse_args():
     parser.add_argument('--wandb_run_name', type=str, default=None, help='Wandb run name')
     parser.add_argument('--load_checkpoint', type=str, required=True, help='Path to checkpoint file to load')
     parser.add_argument('--model_type', type=str, default='simple_mlp', help='Predictor model type (use --list_models to see available models)')
+    parser.add_argument('--num_active_experts', type=int, default=2, help='Number of active experts per token for B_acc metric')
     parser.add_argument('--list_models', action='store_true', help='List available model types and exit')
     return parser.parse_args()
 
@@ -98,6 +99,7 @@ def main():
     print(f"Top-k values: {top_k_values}")
     print(f"Use wandb: {args.use_wandb}")
     print(f"Checkpoint to load: {args.load_checkpoint}")
+    print(f"Num active experts: {args.num_active_experts}")
     print("=" * 80)
     
     print("\n[Step 1] Loading model and tokenizer...")
@@ -189,6 +191,7 @@ def main():
     print("\n[Step 10] Evaluation loop...")
     print(f"  Eval batch size: {args.eval_batch_size}")
     print(f"  Top-k values: {top_k_values}")
+    print(f"  Num active experts: {args.num_active_experts}")
     print(f"  Use wandb: {args.use_wandb}")
     print("(Press Ctrl+C to stop)...")
     
@@ -263,6 +266,7 @@ def main():
                         eval_batch_size=args.eval_batch_size,
                         device=args.device,
                         top_k_values=top_k_values,
+                        num_active_experts=args.num_active_experts,
                         use_wandb=args.use_wandb,
                         wandb_project=args.wandb_project,
                         wandb_run_name=args.wandb_run_name

@@ -1,0 +1,22 @@
+- [x] evaluater.py 中已移除所有 CrossEntropy Loss 相关代码（criterion、layer_losses、avg_loss 等）
+- [x] evaluater.py 中已移除全局累计式 top-k accuracy 的旧状态变量
+- [x] evaluater.py 构造函数新增 `num_active_experts` 参数
+- [x] Task 1: 逐批次逐层严格 Top-K 命中率正确实现
+  - [x] 每批次每层的 top-k 命中率比例被计算并记录到 wandb
+  - [x] 每批次所有层的平均正确率被计算并记录到 wandb
+  - [x] 全局累计平均 top-k 正确率随批次变化被记录到 wandb
+- [x] Task 2: B_acc 指标正确实现
+  - [x] 真实路由 R_batch（按位或合并）正确计算
+  - [x] 预测路由 R̂_batch（按位或合并）正确计算
+  - [x] B_acc 公式正确实现
+  - [x] 每批次的 B_acc 值和累计平均值记录到 wandb
+  - [x] batch_size=1 模拟的 B_acc 值和累计平均值记录到 wandb
+- [x] Task 3: Error Rate 指标正确实现
+  - [x] 模型预测概率分布 p̂ 正确计算（softmax）
+  - [x] 真实经验概率分布 p 正确计算
+  - [x] error_rate = |p̂ - p| / (1/num_experts) 正确实现
+  - [x] 每批次的 error rate 值和累计平均值记录到 wandb
+- [x] test_predictor.py 新增 `--num_active_experts` 命令行参数
+- [x] test_predictor.py 正确传递 `num_active_experts` 给 evaluater
+- [x] test_predictor.py 中移除了与 loss 相关的输出
+- [x] 所有评估结果都保存到 wandb 记录中

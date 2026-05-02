@@ -3,8 +3,8 @@
 # Test script for MoE gate predictor evaluation
 # This script tests the evaluation module with trained checkpoints
 
-export CUDA_VISIBLE_DEVICES=2,3
-PROJECT_ROOT="/data1/gx/moe-predict"
+export CUDA_VISIBLE_DEVICES=0,2
+PROJECT_ROOT="/data1/gx/MoE-predict"
 # MODEL_NAME="Qwen3-30B-A3B"
 # MODEL_NAME="Mixtral-8x7B-Instruct-v0.1"
 MODEL_NAME="DeepSeek-V2-Lite-Chat"
@@ -24,13 +24,15 @@ MAX_SAMPLES=12000
 
 # Evaluation configuration
 EPOCHS=1
-EVAL_BATCH_SIZE=15
-TOP_K_VALUES="1,2,3,4,5,6"
+EVAL_BATCH_SIZE=3
+TOP_K_VALUES="1,2,6"
+NUM_ACTIVE_EXPERTS=6
 USE_WANDB=true
 
 # Checkpoint configuration
-CHECKPOINT_DIR="${PROJECT_ROOT}/predict_models/attn-gate/${MODEL_NAME}/${DATA_NAME}"
-CHECKPOINT_FILE="${CHECKPOINT_DIR}/predictor_sample_70000.pt"
+CHECKPOINT_NAME="mmlu"
+CHECKPOINT_ID="70000"
+CHECKPOINT_FILE="${PROJECT_ROOT}/predict_models/attn-gate/${MODEL_NAME}/${CHECKPOINT_NAME}/predictor_sample_${CHECKPOINT_ID}.pt"
 
 echo "=========================================="
 echo "MoE Gate Predictor Evaluation Test"
@@ -45,6 +47,7 @@ echo "Max samples per epoch: ${MAX_SAMPLES}"
 echo "Epochs: ${EPOCHS}"
 echo "Eval batch size: ${EVAL_BATCH_SIZE}"
 echo "Top-k values: ${TOP_K_VALUES}"
+echo "Num active experts: ${NUM_ACTIVE_EXPERTS}"
 echo "Use wandb: ${USE_WANDB}"
 echo "Checkpoint file: ${CHECKPOINT_FILE}"
 echo "=========================================="
@@ -91,11 +94,12 @@ python "${SCRIPT_PATH}" \
     --epochs "${EPOCHS}" \
     --eval_batch_size "${EVAL_BATCH_SIZE}" \
     --top_k_values "${TOP_K_VALUES}" \
+    --num_active_experts "${NUM_ACTIVE_EXPERTS}" \
     --load_checkpoint "${CHECKPOINT_FILE}" \
     --model_type "${MODEL_TYPE}" \
     --use_wandb \
     --wandb_project "moe-gate-predictor-eval" \
-    --wandb_run_name "${MODEL_NAME}-${DATA_NAME}-eval-model_type"
+    --wandb_run_name "${MODEL_NAME}-${CHECKPOINT_NAME}"
 
 EXIT_CODE=$?
 
