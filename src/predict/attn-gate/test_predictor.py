@@ -60,6 +60,7 @@ def parse_args():
     parser.add_argument('--load_checkpoint', type=str, required=True, help='Path to checkpoint file to load')
     parser.add_argument('--model_type', type=str, default='simple_mlp', help='Predictor model type (use --list_models to see available models)')
     parser.add_argument('--num_active_experts', type=int, default=2, help='Number of active experts per token for B_acc metric')
+    parser.add_argument('--hidden_dim', type=int, default=2048, help='Hidden dimension for predictor model')
     parser.add_argument('--list_models', action='store_true', help='List available model types and exit')
     return parser.parse_args()
 
@@ -256,7 +257,7 @@ def main():
                         num_layers=num_layers,
                         input_dim=hidden_dim,
                         num_experts=num_experts_from_gate,
-                        hidden_dim=2048,
+                        hidden_dim=args.hidden_dim,
                         dropout=0.1
                     )
                     

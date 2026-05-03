@@ -18,13 +18,83 @@ EVAL_BATCH_SIZE=3
 USE_WANDB=true
 WANDB_PROJECT="moe-gate-predictor-eval"
 
-# Task list: each line is "MODEL_NAME|DATA_NAME|MODEL_TYPE|TOP_K_VALUES|NUM_ACTIVE_EXPERTS|CHECKPOINT_NAME|CHECKPOINT_ID"
+# Task list: each line is "MODEL_NAME|DATA_NAME|MODEL_TYPE|TOP_K_VALUES|NUM_ACTIVE_EXPERTS|CHECKPOINT_NAME|CHECKPOINT_ID|HIDDEN_DIM"
+# HIDDEN_DIM can be empty to use default (2048)
+
+# DeepSeek-V2-Lite-Chat tasks (6 active experts, top-k 1,2,6)
+# TASKS=(
+#     "DeepSeek-V2-Lite-Chat|mmlu|simple_mlp|1,2,6|6|mmlu|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|mmlu|lstm|1,2,6|6|mmlu-ce-lstm|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|mmlu|mlp_without_dropout|1,2,6|6|mmlu-mlp-without-dropout|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|mmlu|simple_mlp|1,2,6|6|mmlu-weighted_bce|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|mmlu|simple_mlp|1,2,6|6|mmlu-ranking_aware_bce|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|mmlu|simple_mlp|1,2,6|6|mmlu-ce-simple_mlp_h512|70000|512"
+#     "DeepSeek-V2-Lite-Chat|mmlu|simple_mlp|1,2,6|6|mmlu-ce-simple_mlp_h1024|70000|1024"
+#
+#     "DeepSeek-V2-Lite-Chat|wikitext|simple_mlp|1,2,6|6|mmlu|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|wikitext|lstm|1,2,6|6|mmlu-ce-lstm|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|wikitext|mlp_without_dropout|1,2,6|6|mmlu-mlp-without-dropout|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|wikitext|simple_mlp|1,2,6|6|mmlu-weighted_bce|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|wikitext|simple_mlp|1,2,6|6|mmlu-ranking_aware_bce|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|wikitext|simple_mlp|1,2,6|6|mmlu-ce-simple_mlp_h512|70000|512"
+#     "DeepSeek-V2-Lite-Chat|wikitext|simple_mlp|1,2,6|6|mmlu-ce-simple_mlp_h1024|70000|1024"
+#
+#     "DeepSeek-V2-Lite-Chat|gsm8k|simple_mlp|1,2,6|6|mmlu|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|gsm8k|lstm|1,2,6|6|mmlu-ce-lstm|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|gsm8k|mlp_without_dropout|1,2,6|6|mmlu-mlp-without-dropout|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|gsm8k|simple_mlp|1,2,6|6|mmlu-weighted_bce|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|gsm8k|simple_mlp|1,2,6|6|mmlu-ranking_aware_bce|70000|2048"
+#     "DeepSeek-V2-Lite-Chat|gsm8k|simple_mlp|1,2,6|6|mmlu-ce-simple_mlp_h512|70000|512"
+#     "DeepSeek-V2-Lite-Chat|gsm8k|simple_mlp|1,2,6|6|mmlu-ce-simple_mlp_h1024|70000|1024"
+# )
+
+# Qwen3-30B-A3B tasks (8 active experts, top-k 1,2,8)
 TASKS=(
-    "DeepSeek-V2-Lite-Chat|mmlu|lstm|1,2,6|6|mmlu-ce-lstm|70000"
-    "DeepSeek-V2-Lite-Chat|mmlu|mlp_without_dropout|1,2,6|6|mmlu-mlp-without-dropout|70000"
-    "DeepSeek-V2-Lite-Chat|mmlu|simple_mlp|1,2,6|6|mmlu-weighted_bce|70000"
-    "DeepSeek-V2-Lite-Chat|mmlu|simple_mlp|1,2,6|6|mmlu-ranking_aware_bce|70000"
+    "Qwen3-30B-A3B|mmlu|simple_mlp|1,2,8|8|mmlu-3_5epoch|42000|2048"
+    "Qwen3-30B-A3B|mmlu|lstm|1,2,8|8|mmlu-ce-lstm|70000|2048"
+    "Qwen3-30B-A3B|mmlu|mlp_without_dropout|1,2,8|8|mmlu-mlp-without-dropout|70000|2048"
+    "Qwen3-30B-A3B|mmlu|simple_mlp|1,2,8|8|mmlu-ce-simple_mlp_h512|70000|512"
+    "Qwen3-30B-A3B|mmlu|simple_mlp|1,2,8|8|mmlu-ce-simple_mlp_h1024_V1|18000|1024"
+    "Qwen3-30B-A3B|mmlu|simple_mlp|1,2,8|8|mmlu-ranking_aware_bce-epoch3_5|42000|2048"
+    "Qwen3-30B-A3B|mmlu|simple_mlp|1,2,8|8|mmlu-weighted_bce-simple_mlp-epoch4_5|16000|2048"
+
+    "Qwen3-30B-A3B|wikitext|simple_mlp|1,2,8|8|mmlu-3_5epoch|42000|2048"
+    "Qwen3-30B-A3B|wikitext|lstm|1,2,8|8|mmlu-ce-lstm|70000|2048"
+    "Qwen3-30B-A3B|wikitext|mlp_without_dropout|1,2,8|8|mmlu-mlp-without-dropout|70000|2048"
+    "Qwen3-30B-A3B|wikitext|simple_mlp|1,2,8|8|mmlu-ce-simple_mlp_h512|70000|512"
+    "Qwen3-30B-A3B|wikitext|simple_mlp|1,2,8|8|mmlu-ce-simple_mlp_h1024_V1|18000|1024"
+    "Qwen3-30B-A3B|wikitext|simple_mlp|1,2,8|8|mmlu-ranking_aware_bce-epoch3_5|42000|2048"
+    "Qwen3-30B-A3B|wikitext|simple_mlp|1,2,8|8|mmlu-weighted_bce-simple_mlp-epoch4_5|16000|2048"
+
+    "Qwen3-30B-A3B|gsm8k|simple_mlp|1,2,8|8|mmlu-3_5epoch|42000|2048"
+    "Qwen3-30B-A3B|gsm8k|lstm|1,2,8|8|mmlu-ce-lstm|70000|2048"
+    "Qwen3-30B-A3B|gsm8k|mlp_without_dropout|1,2,8|8|mmlu-mlp-without-dropout|70000|2048"
+    "Qwen3-30B-A3B|gsm8k|simple_mlp|1,2,8|8|mmlu-ce-simple_mlp_h512|70000|512"
+    "Qwen3-30B-A3B|gsm8k|simple_mlp|1,2,8|8|mmlu-ce-simple_mlp_h1024_V1|18000|1024"
+    "Qwen3-30B-A3B|gsm8k|simple_mlp|1,2,8|8|mmlu-ranking_aware_bce-epoch3_5|42000|2048"
+    "Qwen3-30B-A3B|gsm8k|simple_mlp|1,2,8|8|mmlu-weighted_bce-simple_mlp-epoch4_5|16000|2048"
 )
+
+# Mixtral-8x7B-Instruct-v0.1 tasks (2 active experts, top-k 1,2)
+# TASKS=(
+#     "Mixtral-8x7B-Instruct-v0.1|mmlu|simple_mlp|1,2|2|mmlu|70000|2048"
+#     "Mixtral-8x7B-Instruct-v0.1|mmlu|lstm|1,2|2|mmlu-ce-lstm|70000|2048"
+#     "Mixtral-8x7B-Instruct-v0.1|mmlu|mlp_without_dropout|1,2|2|mmlu-mlp-without-dropout|70000|2048"
+#     "Mixtral-8x7B-Instruct-v0.1|mmlu|simple_mlp|1,2|2|mmlu-ce-simple_mlp_h512|70000|512"
+#     "Mixtral-8x7B-Instruct-v0.1|mmlu|simple_mlp|1,2|2|mmlu-ce-simple_mlp_h1024|70000|1024"
+#
+#     "Mixtral-8x7B-Instruct-v0.1|wikitext|simple_mlp|1,2|2|mmlu|70000|2048"
+#     "Mixtral-8x7B-Instruct-v0.1|wikitext|lstm|1,2|2|mmlu-ce-lstm|70000|2048"
+#     "Mixtral-8x7B-Instruct-v0.1|wikitext|mlp_without_dropout|1,2|2|mmlu-mlp-without-dropout|70000|2048"
+#     "Mixtral-8x7B-Instruct-v0.1|wikitext|simple_mlp|1,2|2|mmlu-ce-simple_mlp_h512|70000|512"
+#     "Mixtral-8x7B-Instruct-v0.1|wikitext|simple_mlp|1,2|2|mmlu-ce-simple_mlp_h1024|70000|1024"
+#
+#     "Mixtral-8x7B-Instruct-v0.1|gsm8k|simple_mlp|1,2|2|mmlu|70000|2048"
+#     "Mixtral-8x7B-Instruct-v0.1|gsm8k|lstm|1,2|2|mmlu-ce-lstm|70000|2048"
+#     "Mixtral-8x7B-Instruct-v0.1|gsm8k|mlp_without_dropout|1,2|2|mmlu-mlp-without-dropout|70000|2048"
+#     "Mixtral-8x7B-Instruct-v0.1|gsm8k|simple_mlp|1,2|2|mmlu-ce-simple_mlp_h512|70000|512"
+#     "Mixtral-8x7B-Instruct-v0.1|gsm8k|simple_mlp|1,2|2|mmlu-ce-simple_mlp_h1024|70000|1024"
+# )
 
 TOTAL_TASKS=${#TASKS[@]}
 COMPLETED=0
@@ -37,12 +107,17 @@ echo "Total tasks: ${TOTAL_TASKS}"
 echo "=========================================="
 
 for TASK in "${TASKS[@]}"; do
-    IFS='|' read -r MODEL_NAME DATA_NAME MODEL_TYPE TOP_K_VALUES NUM_ACTIVE_EXPERTS CHECKPOINT_NAME CHECKPOINT_ID <<< "${TASK}"
+    IFS='|' read -r MODEL_NAME DATA_NAME MODEL_TYPE TOP_K_VALUES NUM_ACTIVE_EXPERTS CHECKPOINT_NAME CHECKPOINT_ID HIDDEN_DIM <<< "${TASK}"
 
     MODEL_PATH="${PROJECT_ROOT}/models/${MODEL_NAME}"
     DATASET_PATH="${PROJECT_ROOT}/dataset/processed/test/${DATA_NAME}.jsonl"
     CHECKPOINT_FILE="${PROJECT_ROOT}/predict_models/attn-gate/${MODEL_NAME}/${CHECKPOINT_NAME}/predictor_sample_${CHECKPOINT_ID}.pt"
     WANDB_RUN_NAME="${MODEL_NAME}-${CHECKPOINT_NAME}"
+
+    HIDDEN_DIM_ARG=""
+    if [ -n "${HIDDEN_DIM}" ]; then
+        HIDDEN_DIM_ARG="--hidden_dim ${HIDDEN_DIM}"
+    fi
 
     echo ""
     echo "=========================================="
@@ -53,6 +128,7 @@ for TASK in "${TASKS[@]}"; do
     echo "Model type: ${MODEL_TYPE}"
     echo "Top-k values: ${TOP_K_VALUES}"
     echo "Num active experts: ${NUM_ACTIVE_EXPERTS}"
+    echo "Hidden dim: ${HIDDEN_DIM:-2048 (default)}"
     echo "Checkpoint: ${CHECKPOINT_NAME}/predictor_sample_${CHECKPOINT_ID}.pt"
     echo "=========================================="
 
@@ -89,6 +165,7 @@ for TASK in "${TASKS[@]}"; do
         --eval_batch_size "${EVAL_BATCH_SIZE}" \
         --top_k_values "${TOP_K_VALUES}" \
         --num_active_experts "${NUM_ACTIVE_EXPERTS}" \
+        ${HIDDEN_DIM_ARG} \
         --load_checkpoint "${CHECKPOINT_FILE}" \
         --model_type "${MODEL_TYPE}" \
         --use_wandb \

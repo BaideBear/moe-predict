@@ -37,6 +37,11 @@ class GatePredictorEvaluater:
         self.cumulative_b_acc_bs1 = 0.0
         self.cumulative_error_rate = 0.0
 
+        self.cumulative_top_k_avg_M2 = {k: 0.0 for k in self.top_k_values}
+        self.cumulative_b_acc_M2 = 0.0
+        self.cumulative_b_acc_bs1_M2 = 0.0
+        self.cumulative_error_rate_M2 = 0.0
+
         if self.use_wandb:
             wandb.init(
                 project=wandb_project,
@@ -161,10 +166,25 @@ class GatePredictorEvaluater:
         self.total_samples += len(self.batch_buffer)
 
         for k in self.top_k_values:
+            delta = batch_avg_top_k[k] - self.cumulative_top_k_avg[k]
             self.cumulative_top_k_avg[k] = (self.cumulative_top_k_avg[k] * (self.total_batches - 1) + batch_avg_top_k[k]) / self.total_batches
+            delta2 = batch_avg_top_k[k] - self.cumulative_top_k_avg[k]
+            self.cumulative_top_k_avg_M2[k] += delta * delta2
+
+        delta = b_acc - self.cumulative_b_acc
         self.cumulative_b_acc = (self.cumulative_b_acc * (self.total_batches - 1) + b_acc) / self.total_batches
+        delta2 = b_acc - self.cumulative_b_acc
+        self.cumulative_b_acc_M2 += delta * delta2
+
+        delta = b_acc_bs1 - self.cumulative_b_acc_bs1
         self.cumulative_b_acc_bs1 = (self.cumulative_b_acc_bs1 * (self.total_batches - 1) + b_acc_bs1) / self.total_batches
+        delta2 = b_acc_bs1 - self.cumulative_b_acc_bs1
+        self.cumulative_b_acc_bs1_M2 += delta * delta2
+
+        delta = error_rate - self.cumulative_error_rate
         self.cumulative_error_rate = (self.cumulative_error_rate * (self.total_batches - 1) + error_rate) / self.total_batches
+        delta2 = error_rate - self.cumulative_error_rate
+        self.cumulative_error_rate_M2 += delta * delta2
 
         self._log_metrics(top_k_hit_rate, batch_avg_top_k, b_acc, b_acc_bs1, error_rate)
 
@@ -227,6 +247,18 @@ class GatePredictorEvaluater:
               f"Error_rate={error_rate:.4f}, Samples/sec={samples_per_sec:.2f}")
 
         if self.use_wandb:
+            n = self.total_batches
+            top_k_variance = {}
+            for k in self.top_k_values:
+                if n > 1:
+                    top_k_variance[k] = self.cumulative_top_k_avg_M2[k] / (n - 1)
+                else:
+                    top_k_variance[k] = 0.0
+
+            b_acc_variance = self.cumulative_b_acc_M2 / (n - 1) if n > 1 else 0.0
+            b_acc_bs1_variance = self.cumulative_b_acc_bs1_M2 / (n - 1) if n > 1 else 0.0
+            error_rate_variance = self.cumulative_error_rate_M2 / (n - 1) if n > 1 else 0.0
+
             log_dict = {
                 "batch": self.total_batches,
                 "samples_per_second": samples_per_sec,
@@ -234,10 +266,13 @@ class GatePredictorEvaluater:
                 "elapsed_time": elapsed_time,
                 "b_acc/batch": b_acc,
                 "b_acc/cumulative_avg": self.cumulative_b_acc,
+                "b_acc/cumulative_variance": b_acc_variance,
                 "b_acc_bs1/batch": b_acc_bs1,
                 "b_acc_bs1/cumulative_avg": self.cumulative_b_acc_bs1,
+                "b_acc_bs1/cumulative_variance": b_acc_bs1_variance,
                 "error_rate/batch": error_rate,
-                "error_rate/cumulative_avg": self.cumulative_error_rate
+                "error_rate/cumulative_avg": self.cumulative_error_rate,
+                "error_rate/cumulative_variance": error_rate_variance
             }
 
             for layer_idx in range(self.model.num_layers):
@@ -247,6 +282,7 @@ class GatePredictorEvaluater:
             for k in self.top_k_values:
                 log_dict[f"topk_accuracy/batch_avg/k_{k}"] = batch_avg_top_k[k]
                 log_dict[f"topk_accuracy/cumulative_avg/k_{k}"] = self.cumulative_top_k_avg[k]
+                log_dict[f"topk_accuracy/cumulative_variance/k_{k}"] = top_k_variance[k]
 
             wandb.log(log_dict)
 
@@ -257,14 +293,23 @@ class GatePredictorEvaluater:
 
     def get_stats(self) -> Dict[str, Any]:
         elapsed_time = time.time() - self.start_time
+        n = self.total_batches
+
+        cumulative_top_k_variance = {}
+        for k in self.top_k_values:
+            cumulative_top_k_variance[k] = self.cumulative_top_k_avg_M2[k] / (n - 1) if n > 1 else 0.0
 
         return {
             "total_samples": self.total_samples,
             "total_batches": self.total_batches,
             "cumulative_top_k_avg": dict(self.cumulative_top_k_avg),
+            "cumulative_top_k_variance": cumulative_top_k_variance,
             "cumulative_b_acc": self.cumulative_b_acc,
+            "cumulative_b_acc_variance": self.cumulative_b_acc_M2 / (n - 1) if n > 1 else 0.0,
             "cumulative_b_acc_bs1": self.cumulative_b_acc_bs1,
+            "cumulative_b_acc_bs1_variance": self.cumulative_b_acc_bs1_M2 / (n - 1) if n > 1 else 0.0,
             "cumulative_error_rate": self.cumulative_error_rate,
+            "cumulative_error_rate_variance": self.cumulative_error_rate_M2 / (n - 1) if n > 1 else 0.0,
             "elapsed_time": elapsed_time,
             "samples_per_second": self.total_samples / elapsed_time if elapsed_time > 0 else 0.0
         }
@@ -291,26 +336,31 @@ class GatePredictorEvaluater:
         print(f"  Elapsed time: {stats['elapsed_time']:.2f}s")
         print(f"  Samples/second: {stats['samples_per_second']:.2f}")
 
-        print("\n  Cumulative top-k accuracy:")
+        print("\n  Cumulative top-k accuracy (mean ± std):")
         for k, acc in stats['cumulative_top_k_avg'].items():
-            print(f"    top-{k}: {acc:.2%}")
+            std = stats['cumulative_top_k_variance'][k] ** 0.5
+            print(f"    top-{k}: {acc:.2%} ± {std:.2%}")
 
-        print(f"\n  Cumulative B_acc: {stats['cumulative_b_acc']:.4f}")
-        print(f"  Cumulative B_acc_bs1: {stats['cumulative_b_acc_bs1']:.4f}")
-        print(f"  Cumulative Error_rate: {stats['cumulative_error_rate']:.4f}")
+        print(f"\n  Cumulative B_acc: {stats['cumulative_b_acc']:.4f} ± {stats['cumulative_b_acc_variance']**0.5:.4f}")
+        print(f"  Cumulative B_acc_bs1: {stats['cumulative_b_acc_bs1']:.4f} ± {stats['cumulative_b_acc_bs1_variance']**0.5:.4f}")
+        print(f"  Cumulative Error_rate: {stats['cumulative_error_rate']:.4f} ± {stats['cumulative_error_rate_variance']**0.5:.4f}")
         print("=" * 80)
 
         if self.use_wandb:
             final_log = {
                 "final/cumulative_b_acc": stats['cumulative_b_acc'],
+                "final/cumulative_b_acc_variance": stats['cumulative_b_acc_variance'],
                 "final/cumulative_b_acc_bs1": stats['cumulative_b_acc_bs1'],
+                "final/cumulative_b_acc_bs1_variance": stats['cumulative_b_acc_bs1_variance'],
                 "final/cumulative_error_rate": stats['cumulative_error_rate'],
+                "final/cumulative_error_rate_variance": stats['cumulative_error_rate_variance'],
                 "final_total_samples": stats['total_samples'],
                 "final_elapsed_time": stats['elapsed_time']
             }
 
             for k, acc in stats['cumulative_top_k_avg'].items():
                 final_log[f"final/cumulative_top{k}_accuracy"] = acc
+                final_log[f"final/cumulative_top{k}_variance"] = stats['cumulative_top_k_variance'][k]
 
             wandb.log(final_log)
             wandb.finish()

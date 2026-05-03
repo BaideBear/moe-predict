@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Test script for MoE gate predictor training
-# This script tests the training module with minimal samples
+# This script tests the training module with m,nimal samples
 export HF_HOME=/data1/gx/hf_cache
 export WANDB_DIR=/data1/gx/.cache/wandb
-export CUDA_VISIBLE_DEVICES=0,2
+export CUDA_VISIBLE_DEVICES=0,1,2
 PROJECT_ROOT="/data1/gx/MoE-predict"
-MODEL_NAME="Qwen3-30B-A3B"
-# MODEL_NAME="Mixtral-8x7B-Instruct-v0.1"
+# MODEL_NAME="Qwen3-30B-A3B"
+MODEL_NAME="Mixtral-8x7B-Instruct-v0.1"
 # MODEL_NAME="DeepSeek-V2-Lite-Chat"
 DATA_NAME="mmlu"
 # DATA_NAME="wikitext"
@@ -19,7 +19,7 @@ LOSS_TYPE="ce"
 # LOSS_TYPE="ranking_aware_bce"
 # LOSS_TYPE="weighted_bce"
 # 换模型记得修改top-k
-TOP_K=8
+TOP_K=6
 LAMBDA_RANKING=0.3
 MARGIN=0.1
 WEIGHT_TOP10=3.0
@@ -120,6 +120,7 @@ python "${SCRIPT_PATH}" \
     --use_wandb \
     --wandb_project "moe-gate-predictor" \
     --wandb_run_name "${MODEL_NAME}-${DATA_NAME}-${LOSS_TYPE}-${MODEL_TYPE}_h512" \
+    # --log_top_experts_file "./top_experts.log" \
     # --start_sample 9184 \
     # --load_checkpoint "/data1/gx/MoE-predict/predict_models/attn-gate/Qwen3-30B-A3B/mmlu-ce-simple_mlp_h1024/predictor_sample_52000.pt"
 
